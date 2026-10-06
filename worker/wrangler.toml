@@ -1,0 +1,26 @@
+# The presence feed for aridan.net: the desktop agents report what is playing
+# here, and the site listens for it, so the music widget no longer needs
+# Discord running.
+#
+# Secret, set once with `npx wrangler secret put AGENT_TOKEN`:
+#   AGENT_TOKEN  the bearer token the agents send. Anything long and random.
+
+name = "aridan-presence"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+# One hostname only. The workers.dev one would be a second, unadvertised way
+# in that nothing needs.
+workers_dev = false
+routes = [
+  { pattern = "presence.aridan.net", custom_domain = true }
+]
+
+[[durable_objects.bindings]]
+name = "PRESENCE"
+class_name = "Presence"
+
+# SQLite-backed, because that is the only kind the free plan has.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Presence"]
