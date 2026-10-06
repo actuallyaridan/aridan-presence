@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=aridan-presence
+GenericName=Music presence for aridan.net
+Comment=Shares what I am listening to with aridan.net
+Exec=aridan-presence
+Icon=aridan-presence
+Categories=Utility;AudioVideo;
+StartupWMClass=aridan-presence
+Terminal=false

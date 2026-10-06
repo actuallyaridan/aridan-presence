@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the window may do: its own commands, and listening for status updates.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

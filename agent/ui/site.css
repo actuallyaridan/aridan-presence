@@ -1,0 +1,845 @@
+/* aridan.net's own styles, copied so the app looks like a part of the site.
+   Each block says which file of the site it came from, and the selectors
+   are kept the same so they can be compared and kept in step. Only what the
+   app uses is here. Where something had to change for the app, it says so.
+
+   The page's classes, as on the site: theme-auto (follow the system),
+   color-monochrome (the accent) and style-liquid-glass. */
+
+/* ---------- styles.css: colours ---------- */
+
+:root {
+    --text-color: #000000;
+    --header-text-color: rgba(0, 0, 0, 0.575);
+    --header-text-color-hover: rgba(0, 0, 0, 0.758);
+    --paragraph-color: #4a4a4a;
+    --title-color: #000000;
+    --invert-title-color: #ffffff;
+    --subtitle-color: #333333;
+    --secondary-title-color: #555555;
+    --footer-text-color: rgba(0, 0, 0, 0.575);
+
+    --background-color: #f1f1f1;
+    --header-background-color: #e1e1e188;
+    --button-background-color: rgba(200, 200, 200, 0.30);
+    --button-hover-background-color: #dddddd;
+    --modal-background-color: rgb(240, 240, 240);
+    --selected-background-color: #ffffff;
+    --icon-background-color: rgba(200, 200, 200, 0.30);
+    --card-background-color: var(--icon-background-color);
+    --border-color: #cccccc;
+    color-scheme: light;
+
+    --accent-color: #666666;
+    --accent-text: light-dark(#5c5c5c, #8f8f8f);
+    --accent-fill: #666666;
+    --accent-fill-hover: #4d4d4d;
+
+    --blur-subtle: 2px;
+    --blur-soft: 5px;
+    --blur-regular: 10px;
+    --blur-heavy: 12px;
+
+    --liquid-glass-button-border: rgba(0, 0, 0, 0.1);
+    --liquid-glass-button-background: rgba(0, 0, 0, 0.05);
+    --liquid-glass-button-slected: rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark {
+    --text-color: #ffffff;
+    --header-text-color: rgba(255, 255, 255, 0.575);
+    --header-text-color-hover: rgba(255, 255, 255, 0.758);
+    --paragraph-color: #b4b4b4;
+    --title-color: #ffffff;
+    --invert-title-color: #000;
+    --subtitle-color: #eeeeee;
+    --secondary-title-color: #cacaca;
+    --footer-text-color: rgba(255, 255, 255, 0.575);
+
+    --background-color: #121212;
+    --header-background-color: #0c0c0c88;
+    --button-background-color: rgba(60, 60, 60, 0.30);
+    --button-hover-background-color: #333333;
+    --modal-background-color: rgb(26, 26, 26);
+    --selected-background-color: rgba(255, 255, 255, 0.16);
+    --icon-background-color: rgba(60, 60, 60, 0.30);
+    --card-background-color: var(--icon-background-color);
+    --border-color: #333333;
+    color-scheme: dark;
+
+    --liquid-glass-button-border: rgba(255, 255, 255, 0.15);
+    --liquid-glass-button-background: rgba(255, 255, 255, 0.05);
+    --liquid-glass-button-slected: rgba(63, 63, 63, 0.50);
+}
+
+@media (prefers-color-scheme: dark) {
+    .theme-auto {
+        --text-color: #ffffff;
+        --header-text-color: rgba(255, 255, 255, 0.575);
+        --header-text-color-hover: rgba(255, 255, 255, 0.758);
+        --paragraph-color: #b4b4b4;
+        --title-color: #ffffff;
+        --invert-title-color: #000;
+        --subtitle-color: #eeeeee;
+        --secondary-title-color: #cacaca;
+        --footer-text-color: rgba(255, 255, 255, 0.575);
+
+        --background-color: #121212;
+        --header-background-color: #0c0c0c88;
+        --button-background-color: rgba(60, 60, 60, 0.30);
+        --button-hover-background-color: #333333;
+        --modal-background-color: rgb(26, 26, 26);
+        --selected-background-color: rgba(255, 255, 255, 0.16);
+        --icon-background-color: rgba(60, 60, 60, 0.30);
+        --card-background-color: var(--icon-background-color);
+        --border-color: #333333;
+        color-scheme: dark;
+
+        --liquid-glass-button-border: rgba(255, 255, 255, 0.15);
+        --liquid-glass-button-background: rgba(255, 255, 255, 0.05);
+        --liquid-glass-button-slected: rgba(63, 63, 63, 0.50);
+    }
+}
+
+.color-monochrome {
+    --accent-color: #666666;
+    --accent-color-hover: #4d4d4d;
+    --icon-color: #4d4d4d;
+    --accent-text: light-dark(#5c5c5c, #8f8f8f);
+    --accent-text-hover: light-dark(#4d4d4d, #8f8f8f);
+    --accent-fill: #666666;
+    --accent-fill-hover: #4d4d4d;
+}
+
+/* ---------- styles.css: the basics ---------- */
+
+body,
+* {
+    margin: 0;
+    padding: 0;
+    font-size: 1em;
+    box-sizing: border-box;
+    font-family: "Jost", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Font Awesome brings its own font for icons. The rule above would
+   otherwise put Jost on them too. */
+.fa-solid,
+.fa-regular,
+.fa-brands {
+    font-family: var(--_fa-family);
+}
+
+.hide {
+    display: none !important;
+}
+
+h2,
+h3 {
+    font-weight: 550;
+}
+
+.noUI {
+    all: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    position: relative;
+    top: 1px;
+}
+
+/* ---------- styles.css: the header bar ---------- */
+
+ul.notAList {
+    list-style-type: none;
+    display: flex;
+    flex-direction: row;
+    padding: 20px;
+    gap: 20px;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+
+header>div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 4em;
+    background-color: var(--header-background-color);
+    -webkit-backdrop-filter: blur(var(--blur-regular));
+    backdrop-filter: blur(var(--blur-regular));
+    margin: auto;
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.style-liquid-glass header>div {
+    height: 3.2em;
+    -webkit-backdrop-filter: blur(var(--blur-subtle));
+    backdrop-filter: blur(var(--blur-subtle));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    border-radius: 42px;
+}
+
+li>a, li>button.noUI {
+    border-bottom: 2px solid transparent;
+    text-decoration: none;
+    color: var(--header-text-color);
+    transition: color .2s ease, border-color .2s ease, background-color .2s ease, opacity .12s ease;
+}
+
+li>a:active, li>button.noUI:active {
+    opacity: .55;
+}
+
+.style-liquid-glass li>a, .style-liquid-glass li>button.noUI {
+    padding: 8px;
+}
+
+.style-liquid-glass li.active>a, .style-liquid-glass li.active>button.noUI {
+    color: var(--accent-text);
+}
+
+.style-liquid-glass ul.notAList {
+    padding-left: 0px;
+    white-space: nowrap;
+}
+
+li>a>i, li>button.noUI>i {
+    margin-right: 0px !important;
+}
+
+/* The highlight behind the page you are on - .nav-pill on the site, which
+   slides between links as you hover. The app has one entry, so it stays
+   put. */
+.style-liquid-glass li.active {
+    border-radius: 42px;
+    background: var(--liquid-glass-button-slected);
+    border: 1px solid var(--liquid-glass-button-border);
+    padding: 0 8px;
+}
+
+/* ---------- styles.css: the footer ---------- */
+
+footer {
+    width: 80vw;
+    box-sizing: border-box;
+    margin: auto auto 0;
+    padding: 2.5em 12px 2em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+footer>.footerNote {
+    max-width: 600px;
+    color: var(--footer-text-color);
+    font-size: .9em;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2px 12px;
+}
+
+/* ---------- styles.css: buttons ---------- */
+
+.fa-solid,
+.fa-brands,
+.fa-regular {
+    width: 1em;
+    margin-right: 10px;
+}
+
+button>.fa-solid {
+    margin-right: 10px;
+}
+
+span>i {
+    width: initial !important;
+}
+
+.style-liquid-glass .button {
+    padding: 10px 20px;
+    border-radius: min(43.25rem, 4.65rem + 36.5vw);
+    font-family: Jost, sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--paragraph-color);
+    -webkit-backdrop-filter: blur(var(--blur-heavy));
+    backdrop-filter: blur(var(--blur-heavy));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 4px 16px rgba(0, 0, 0, 0.2);
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease,
+        color .2s ease,
+        transform .12s ease;
+}
+
+.style-liquid-glass .button:hover:where(:not(:disabled)) {
+    background: rgba(127, 127, 127, 0.18);
+    border-color: rgba(127, 127, 127, 0.3);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.style-liquid-glass .button:active:where(:not(:disabled)) {
+    transform: scale(0.95);
+}
+
+.style-liquid-glass .primary {
+    background: var(--accent-fill);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.style-liquid-glass .primary:hover:where(:not(:disabled)) {
+    background: var(--accent-fill-hover);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* ---------- styles.css: the slide-out layer ---------- */
+
+/* What every layer shares: the whole window, under the page, near-black with
+   a touch of the accent, and always in the dark theme's colours. */
+.revealLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: color-mix(in srgb, var(--accent-fill) 22%, #0b0b0b);
+    visibility: hidden;
+    transition: visibility 0s linear .45s;
+}
+
+.revealLayer.revealShown {
+    visibility: visible;
+    transition: none;
+}
+
+html:not(.revealOpen):not(.revealClosing) .revealLayer {
+    display: none;
+}
+
+.revealLayer:focus {
+    outline: none;
+}
+
+.settingsLayer {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.settingsSheet {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: var(--settings-width);
+    min-height: 100%;
+    margin-left: auto;
+    padding: 0 16px 28px 0;
+    color: var(--text-color);
+}
+
+.settingsSheet .settingsPanel {
+    width: 100%;
+}
+
+.settingsSheet .modalSettings {
+    width: 100%;
+    padding: 12px 0;
+    margin: 0;
+}
+
+/* ---------- settings.css: the panel ---------- */
+
+.settingsPanel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.modalDescription {
+    color: var(--secondary-title-color);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.modalButtons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.modalSettings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px;
+    margin: 12px;
+    border-radius: 8px;
+    color: var(--secondary-title-color);
+}
+
+.modalSettings>div>div>div {
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.settingsGroupHeading>.fa-solid,
+.settingsGroupHeading>.fa-brands {
+    margin-right: 5px;
+}
+
+.settingsGroupHeading {
+    font-size: 1em;
+    font-weight: 550;
+    margin: 0.5em 0;
+}
+
+.settingsPanel:not([data-page="main"]) .modalButtons {
+    display: none;
+}
+
+.settingsPage {
+    width: 100%;
+}
+
+.settingsPage[hidden] {
+    display: none;
+}
+
+.settingsSubpage {
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* ---------- settings.css: toggles ---------- */
+
+.checkbox-wrapper-51 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.checkbox-wrapper-51 input[type="checkbox"] {
+    opacity: 0;
+    position: fixed;
+    width: 0;
+}
+
+.checkbox-wrapper-51 input[type="checkbox"]:focus-visible + .toggle:before {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.checkbox-wrapper-51 .title {
+    margin-right: 10px;
+    flex-grow: 1;
+    white-space: nowrap;
+}
+
+.checkbox-wrapper-51 .toggle {
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transform: translate3d(0, 0, 0);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkbox-wrapper-51 .toggle:before {
+    content: "";
+    position: relative;
+    top: 0px;
+    left: 1px;
+    width: 40px;
+    height: 22px;
+    display: inline-block;
+    background: var(--border-color);
+    border-radius: 12px;
+    transition: background 0.2s ease;
+    margin-right: 4px;
+}
+
+.checkbox-wrapper-51 .toggle span {
+    position: absolute;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    display: block;
+    background: #f9f9f9;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.checkbox-wrapper-51 .toggle span svg {
+    margin: 7px;
+    fill: none;
+}
+
+.checkbox-wrapper-51 .toggle span svg path {
+    stroke: var(--border-color);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 0;
+    transition: all 0.5s linear;
+}
+
+.checkbox-wrapper-51 input[type="checkbox"]:checked+.toggle:before {
+    background: var(--accent-color);
+}
+
+.checkbox-wrapper-51 input[type="checkbox"]:checked+.toggle span {
+    transform: translateX(18px);
+}
+
+.checkbox-wrapper-51 input[type="checkbox"]:checked+.toggle span path {
+    stroke: var(--accent-color);
+    stroke-dasharray: 25;
+    stroke-dashoffset: 25;
+}
+
+.style-liquid-glass .checkbox-wrapper-51 .toggle:before {
+    background: var(--liquid-glass-button-slected);
+    border: 1px solid var(--liquid-glass-button-border);
+    -webkit-backdrop-filter: blur(var(--blur-heavy));
+    backdrop-filter: blur(var(--blur-heavy));
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.style-liquid-glass .checkbox-wrapper-51 input[type="checkbox"]:checked+.toggle:before {
+    background: var(--accent-color);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.style-liquid-glass .checkbox-wrapper-51 .toggle span {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.style-liquid-glass .checkbox-wrapper-51 .toggle:active span {
+    transform: scale(0.92);
+}
+
+.style-liquid-glass .checkbox-wrapper-51 input[type="checkbox"]:checked+.toggle:active span {
+    transform: translateX(18px) scale(0.92);
+}
+
+/* ---------- settings.css: rows that open a page ---------- */
+
+.settingsNavRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 6px 8px;
+    margin: 0 -8px;
+    box-sizing: content-box;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .2s ease;
+}
+
+.settingsNavRow:hover {
+    background-color: var(--button-background-color);
+}
+
+.settingsNavRow:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.settingsNavRow>.fa-solid {
+    font-size: 0.85em;
+    opacity: 0.7;
+    margin-right: 6px;
+}
+
+/* ---------- settings.css: the title bar ---------- */
+
+.settingsSheetHeader {
+    --sheet-right: 16px;
+    --sheet-shade: color-mix(in srgb, var(--accent-fill) 22%, #0b0b0b);
+
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    width: calc(100% + var(--sheet-right));
+    margin-right: calc(-1 * var(--sheet-right));
+    /* 28px above the title on the site; less in a window that is only so
+       tall. */
+    padding: 18px var(--sheet-right) 10px 0;
+    text-align: center;
+}
+
+.settingsSheetHeader::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 -32px -100vw;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+            color-mix(in srgb, var(--sheet-shade) 90%, transparent) 0%,
+            color-mix(in srgb, var(--sheet-shade) 65%, transparent) 50%,
+            transparent 100%);
+    -webkit-backdrop-filter: blur(var(--blur-regular));
+    backdrop-filter: blur(var(--blur-regular));
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.settingsSheetHeader>h2 {
+    grid-column: 2;
+    margin: 0;
+    /* styles.css: h2 */
+    font-size: 1.5em;
+    color: var(--secondary-title-color);
+}
+
+.settingsBack {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--secondary-title-color);
+    font-size: 1.15em;
+    cursor: pointer;
+    transition: color .2s ease;
+}
+
+.settingsBack:hover {
+    color: var(--title-color);
+}
+
+.settingsBack:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.settingsBack[hidden] {
+    display: none;
+}
+
+.settingsBack>i {
+    margin-right: 0;
+}
+
+/* ---------- settings.css: the Component versions list ---------- */
+
+.versionList {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.versionItem {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: var(--button-background-color);
+    --status-color: var(--border-color);
+}
+
+.versionItem[data-status="current"] {
+    --status-color: light-dark(#23692f, #37a349);
+}
+
+.versionItem[data-status="outdated"] {
+    --status-color: light-dark(#a14a00, #ff9a3c);
+}
+
+.versionItem[data-status="unknown"] {
+    --status-color: light-dark(#ba0a00, #ff5046);
+}
+
+.versionHead {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 10px;
+}
+
+.versionName {
+    font-weight: 600;
+    color: var(--title-color);
+    overflow-wrap: anywhere;
+}
+
+.versionBadge {
+    font-size: 0.85em;
+    font-weight: 550;
+    color: var(--status-color);
+}
+
+.versionItem[data-status="pending"] .versionBadge {
+    color: var(--secondary-title-color);
+}
+
+.versionDetail {
+    color: var(--secondary-title-color);
+}
+
+/* ---------- editor.css: text fields ---------- */
+
+.editorField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.editorField > span:first-child {
+    font-weight: 550;
+    color: var(--secondary-title-color);
+}
+
+.editorField input {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    font: inherit;
+    color: var(--title-color);
+}
+
+.editorField input.button {
+    border-radius: 12px;
+    cursor: text;
+    transition: none;
+}
+
+.style-liquid-glass .editorField input.button {
+    padding: 10px 14px;
+    background: var(--liquid-glass-button-background);
+    border: 1px solid var(--liquid-glass-button-border);
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    transition: border-color .2s ease;
+}
+
+.style-liquid-glass .editorField input.button:hover {
+    background: var(--liquid-glass-button-background);
+    border-color: rgba(127, 127, 127, 0.3);
+    box-shadow: none;
+}
+
+.style-liquid-glass .editorField input.button:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-color: var(--liquid-glass-button-border);
+}
+
+.editorField input.button:active {
+    transform: none;
+}
+
+.editorInput {
+    position: relative;
+    display: block;
+}
+
+.style-liquid-glass .editorInput>input.button {
+    padding-right: 42px;
+}
+
+.fieldHint {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    translate: 0 -50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: var(--secondary-title-color);
+    cursor: help;
+}
+
+.fieldHint>i {
+    margin: 0;
+}
+
+.fieldHint:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.fieldHintText {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    z-index: 10;
+    width: max-content;
+    max-width: 260px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: .85em;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--paragraph-color);
+    background-color: var(--header-background-color);
+    border: 1px solid var(--liquid-glass-button-border);
+    -webkit-backdrop-filter: blur(var(--blur-regular));
+    backdrop-filter: blur(var(--blur-regular));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .15s ease, visibility .15s;
+}
+
+.fieldHint:hover .fieldHintText,
+.fieldHint:focus-visible .fieldHintText {
+    opacity: 1;
+    visibility: visible;
+}

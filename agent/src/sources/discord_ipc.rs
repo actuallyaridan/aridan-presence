@@ -24,6 +24,7 @@
 //   ...and so on, until the app quits and the connection closes.
 
 use crate::activity::{now_ms, Activity, Assets, Timestamps, LISTENING, PLAYING};
+use crate::state::Shared as AppShared;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap};
 use std::io;
@@ -31,7 +32,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::task::{JoinHandle, JoinSet};
+use tokio::task::JoinSet;
 
 const HANDSHAKE: u32 = 0;
 const FRAME: u32 = 1;
@@ -77,6 +78,13 @@ struct Shared {
     activities: Arc<Mutex<BTreeMap<u64, Activity>>>,
     apps: Arc<Mutex<HashMap<String, App>>>,
     client: reqwest::Client,
+
+    // For the window: "starting", "listening", "discord-open" or
+    // "unavailable".
+    mode: Arc<Mutex<&'static str>>,
+
+    // The app's own shared state, for the Log tab.
+    app: Arc<AppShared>,
 }
 
 pub struct DiscordIpc {
@@ -85,7 +93,7 @@ pub struct DiscordIpc {
 
 impl DiscordIpc {
     // Starts watching for Discord in the background and returns at once.
-    pub fn start() -> DiscordIpc {
+    pub fn start(app: Arc<AppShared>) -> DiscordIpc {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(6))
             .build()
@@ -95,9 +103,11 @@ impl DiscordIpc {
             activities: Arc::new(Mutex::new(BTreeMap::new())),
             apps: Arc::new(Mutex::new(HashMap::new())),
             client: client,
+            mode: Arc::new(Mutex::new("starting")),
+            app: app,
         };
 
-        tokio::spawn(supervise(shared.clone()));
+        tauri::async_runtime::spawn(supervise(shared.clone()));
 
         DiscordIpc { shared: shared }
     }
@@ -105,6 +115,10 @@ impl DiscordIpc {
     pub fn activities(&self) -> Vec<Activity> {
         let activities = self.shared.activities.lock().unwrap();
         activities.values().cloned().collect()
+    }
+
+    pub fn mode(&self) -> &'static str {
+        *self.shared.mode.lock().unwrap()
     }
 }
 
@@ -115,15 +129,17 @@ async fn supervise(shared: Shared) {
 
     // The task accepting connections while we hold the socket. Stopping it
     // closes every connection it opened too (see accept_loop).
-    let mut serving: Option<JoinHandle<()>> = None;
+    let mut serving: Option<tauri::async_runtime::JoinHandle<()>> = None;
     let mut reported_error = false;
 
     loop {
         let discord_open = discord_is_running(&mut system);
 
         if discord_open {
+            *shared.mode.lock().unwrap() = "discord-open";
+
             if let Some(task) = serving.take() {
-                println!("Discord is open: handing discord-ipc-0 back to it.");
+                shared.app.log("Discord is open: handing discord-ipc-0 back to it.");
                 task.abort();
                 platform::release();
                 shared.activities.lock().unwrap().clear();
@@ -131,13 +147,16 @@ async fn supervise(shared: Shared) {
         } else if serving.is_none() {
             match platform::listen() {
                 Ok(listener) => {
-                    println!("Discord is closed: listening on discord-ipc-0 for game activity.");
-                    serving = Some(tokio::spawn(accept_loop(listener, shared.clone())));
+                    shared.app.log("Discord is closed: listening on discord-ipc-0 for game activity.");
+                    *shared.mode.lock().unwrap() = "listening";
+                    serving = Some(tauri::async_runtime::spawn(accept_loop(listener, shared.clone())));
                     reported_error = false;
                 }
                 Err(error) => {
+                    *shared.mode.lock().unwrap() = "unavailable";
+
                     if !reported_error {
-                        eprintln!("Could not listen on discord-ipc-0: {}", error);
+                        shared.app.log(format!("Could not listen on discord-ipc-0: {}", error));
                         reported_error = true;
                     }
                 }
@@ -180,7 +199,7 @@ async fn accept_loop(listener: platform::Listener, shared: Shared) {
                         connections.spawn(handle_connection(stream, next_id, shared.clone()));
                     }
                     Err(error) => {
-                        eprintln!("discord-ipc-0: could not accept a connection: {}", error);
+                        shared.app.log(format!("discord-ipc-0: could not accept a connection: {}", error));
                         tokio::time::sleep(Duration::from_secs(1)).await;
                     }
                 }

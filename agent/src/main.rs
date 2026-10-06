@@ -1,215 +1,130 @@
 // aridan-presence: tells presence.aridan.net what I am listening to and
 // playing, so the music widget on aridan.net works without Discord open.
 //
-// Every few seconds it asks each source what is going on, puts the answers
-// together into one list of activities, and sends that to the Worker - when
-// it has changed, and every 30 seconds regardless, so the Worker knows this
-// computer is still here.
-//
-// Music comes from the first of these with an answer:
-//   1. Cider's own API                 sources/cider.rs
-//   2. Discord rich presence           sources/discord_ipc.rs
-//   3. The system's Now Playing        sources/now_playing/
-//
-// Games and other apps that report to Discord are sent alongside the music,
-// whichever source the music came from.
+// It is a tray app. The work happens in engine.rs, in the background, for as
+// long as the app is open. The window (ui/) is only for looking at what it is
+// doing and changing its settings; closing it leaves the app running in the
+// tray. Quit from the tray menu to stop it.
+
+// On Windows, a program is either a console program or a windowed one. This
+// makes the finished build a windowed one, so no black console window opens
+// alongside it. Test builds keep the console, for their printed output.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 // Each `mod` line pulls in the file of that name.
 mod activity;
 mod artwork;
+mod commands;
 mod config;
+mod engine;
 mod server;
 mod sources;
+mod state;
 mod track;
+mod tray;
+mod window;
 
-use activity::{Activity, LISTENING};
-use artwork::Artwork;
-use server::Server;
-use sources::cider::Cider;
-use sources::discord_ipc::DiscordIpc;
-use sources::now_playing::NowPlaying;
-use std::time::{Duration, Instant};
-use track::TrackClock;
+use state::Shared;
+use std::sync::Arc;
+use tauri::{Manager, RunEvent};
+use tauri_plugin_autostart::MacosLauncher;
 
-const POLL_INTERVAL: Duration = Duration::from_secs(3);
+// Starting at login passes this, so the app goes straight to the tray instead
+// of opening its window every morning.
+const MINIMIZED: &str = "--minimized";
 
-// Must stay well under the Worker's 90 seconds (DEVICE_TTL_MS in merge.js),
-// or this computer would blink out between reports.
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
-
-// Everything the main loop asks, kept together so gather() can take one thing.
-struct Sources {
-    cider: Cider,
-    discord: DiscordIpc,
-    now_playing: NowPlaying,
-    artwork: Artwork,
-    clock: TrackClock,
-}
-
-// `#[tokio::main]` sets up tokio, the library that lets one thread wait on
-// many things at once - the network, D-Bus, timers - which is what `async`
-// and `.await` are about. current_thread keeps it to a single thread, which
-// is plenty for something that is mostly asleep.
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
-    let config = match config::load() {
-        Ok(config) => config,
+fn main() {
+    // A broken settings file does not stop the app: it starts with the
+    // defaults, and the Settings tab says what was wrong.
+    let (config, config_error) = match config::load() {
+        Ok(config) => (config, String::new()),
         Err(message) => {
             eprintln!("{}", message);
-            std::process::exit(1);
+            (config::Config::default(), message)
         }
     };
 
-    println!("Reporting to {} as \"{}\".", config.server, config.device);
+    let set_up = config.is_set_up();
+    let shared = Arc::new(Shared::new(config, config_error));
 
-    let server = Server::new(&config);
+    // Not set up yet means the window opens anyway, since Settings is where
+    // that gets done.
+    let started_minimized = std::env::args().any(|argument| argument == MINIMIZED);
+    let open_window = !started_minimized || !set_up;
 
-    let mut sources = Sources {
-        cider: Cider::new(&config),
-        discord: DiscordIpc::start(),
-        now_playing: NowPlaying::new(&config).await,
-        artwork: Artwork::new(config.itunes_countries.clone()),
-        clock: TrackClock::new(),
-    };
+    let engine_shared = shared.clone();
 
-    // None until the first report gets through.
-    let mut last_sent: Option<Vec<Activity>> = None;
-    let mut last_sent_at = Instant::now();
-    let mut server_was_ok = true;
+    let app = tauri::Builder::default()
+        // Starting it a second time - from the app menu, say - opens the
+        // window of the one already running instead. Two copies would fight
+        // over discord-ipc-0 and report over each other.
+        .plugin(tauri_plugin_single_instance::init(|app, _arguments, _folder| {
+            window::show(app);
+        }))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![MINIMIZED]),
+        ))
+        .manage(shared)
+        .invoke_handler(tauri::generate_handler![
+            commands::get_status,
+            commands::get_log,
+            commands::get_config,
+            commands::config_path,
+            commands::save_config,
+            commands::set_paused,
+            commands::get_autostart,
+            commands::set_autostart,
+        ])
+        .setup(move |app| {
+            let handle = app.handle().clone();
 
-    // Made once and checked on every turn of the loop, so Ctrl+C or the
-    // system shutting us down is noticed straight away, even mid-wait.
-    let shutdown = shutdown_signal();
-    tokio::pin!(shutdown);
+            let tray = tray::build(&handle)?;
+            app.manage(tray);
 
-    let mut ticker = tokio::time::interval(POLL_INTERVAL);
-
-    loop {
-        tokio::select! {
-            _ = ticker.tick() => {}
-            _ = &mut shutdown => break,
-        }
-
-        let activities = gather(&mut sources).await;
-
-        let changed = last_sent.as_ref() != Some(&activities);
-        let heartbeat_due = last_sent_at.elapsed() >= HEARTBEAT_INTERVAL;
-
-        if !changed && !heartbeat_due {
-            continue;
-        }
-
-        if changed {
-            describe(&activities);
-        }
-
-        match server.report(&activities).await {
-            Ok(()) => {
-                if !server_was_ok {
-                    println!("Reaching the server again.");
-                }
-                server_was_ok = true;
-
-                last_sent = Some(activities);
-                last_sent_at = Instant::now();
+            if open_window {
+                window::show(&handle);
             }
-            Err(message) => {
-                // Said once, not every three seconds while the internet is out.
-                if server_was_ok {
-                    eprintln!("Could not report: {}. Will keep trying.", message);
-                }
-                server_was_ok = false;
-            }
-        }
-    }
 
-    println!("Stopping. Clearing this computer from the site.");
-    if let Err(message) = server.clear().await {
-        eprintln!("Could not clear: {}", message);
-    }
-}
+            tauri::async_runtime::spawn(engine::run(handle.clone(), engine_shared));
+            tauri::async_runtime::spawn(quit_on_signal(handle));
 
-async fn gather(sources: &mut Sources) -> Vec<Activity> {
-    let from_discord = sources.discord.activities();
+            Ok(())
+        })
+        .build(tauri::generate_context!())
+        .expect("the app should always start");
 
-    // 1. Cider
-    let mut music: Option<Activity> = None;
-
-    if let Some(track) = sources.cider.current().await {
-        let start = sources.clock.start_of(&track);
-        music = Some(track.into_activity(start));
-    }
-
-    // 2. Music an app reported to Discord
-    if music.is_none() {
-        for activity in &from_discord {
-            if activity.kind == LISTENING {
-                music = Some(activity.clone());
-                break;
+    app.run(|_app, event| {
+        // Closing the last window would normally end the program. Here it
+        // only closes the window, and the app carries on in the tray.
+        // `code` is only set when something actually asked to exit, like
+        // Quit in the tray menu.
+        if let RunEvent::ExitRequested { api, code, .. } = event {
+            if code.is_none() {
+                api.prevent_exit();
             }
         }
-    }
-
-    // 3. Now Playing
-    if music.is_none() {
-        if let Some(mut track) = sources.now_playing.current().await {
-            sources.artwork.fill_in(&mut track).await;
-
-            let start = sources.clock.start_of(&track);
-            music = Some(track.into_activity(start));
-        }
-    }
-
-    // Music first, then everything else from Discord. Other music from
-    // Discord is left out: only one song is ever really playing.
-    let mut activities = Vec::new();
-
-    if let Some(music) = music {
-        activities.push(music);
-    }
-
-    for activity in from_discord {
-        if activity.kind != LISTENING {
-            activities.push(activity);
-        }
-    }
-
-    activities
+    });
 }
 
-// One line per activity in the terminal, so it is easy to see what is being
-// sent without reading JSON.
-fn describe(activities: &[Activity]) {
-    if activities.is_empty() {
-        println!("Now: nothing");
-        return;
-    }
-
-    for activity in activities {
-        let details = activity.details.clone().unwrap_or_default();
-        let state = activity.state.clone().unwrap_or_default();
-
-        println!("Now: [{}] {} - {} / {}", activity.source, activity.name, details, state);
-    }
-}
-
-// Ctrl+C in a terminal, or - on Linux and macOS - the polite "please stop"
-// that systemd and launchd send when logging out or shutting down.
-async fn shutdown_signal() {
+// Logging out or shutting down on Linux and macOS sends a polite "please
+// stop" first. Answering it like Quit takes this computer off the site
+// straight away, instead of 90 seconds later.
+async fn quit_on_signal(app: tauri::AppHandle) {
     #[cfg(unix)]
     {
         use tokio::signal::unix::{signal, SignalKind};
 
-        let mut terminate = signal(SignalKind::terminate()).expect("should be able to listen for SIGTERM");
+        let Ok(mut terminate) = signal(SignalKind::terminate()) else {
+            return;
+        };
 
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = terminate.recv() => {}
-        }
+        terminate.recv().await;
+        window::quit(&app);
     }
 
     #[cfg(not(unix))]
     {
-        let _ = tokio::signal::ctrl_c().await;
+        let _ = app;
     }
 }

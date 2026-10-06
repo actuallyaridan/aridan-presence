@@ -55,8 +55,13 @@ pub struct Cider {
     client: reqwest::Client,
     token: String,
 
-    // So a wrong token is mentioned once, not every three seconds.
-    warned: bool,
+    // How the last question went, for the window:
+    //   "no-token"       nothing to ask with
+    //   "not-running"    nobody answered on port 10767
+    //   "token-refused"  Cider answered, but not to this token
+    //   "paused"         Cider is open and not playing
+    //   "playing"        Cider is playing, and this source is in use
+    pub status: &'static str,
 }
 
 impl Cider {
@@ -71,23 +76,26 @@ impl Cider {
         Cider {
             client: client,
             token: config.cider_token.trim().to_string(),
-            warned: false,
+            status: "no-token",
         }
     }
 
     // None when Cider is closed, paused, or there is no token.
     pub async fn current(&mut self) -> Option<Track> {
         if self.token.is_empty() {
+            self.status = "no-token";
             return None;
         }
 
         let playing: IsPlaying = self.get("is-playing").await?;
         if !playing.is_playing {
+            self.status = "paused";
             return None;
         }
 
         let response: NowPlayingResponse = self.get("now-playing").await?;
         let info = response.info?;
+        self.status = "playing";
 
         let mut artwork = None;
         if let Some(art) = info.artwork {
@@ -119,26 +127,22 @@ impl Cider {
     async fn get<T: for<'de> Deserialize<'de>>(&mut self, path: &str) -> Option<T> {
         let url = format!("{}/{}", API, path);
 
-        // Cider not running at all is the usual case, and not worth a message.
-        let response = self
-            .client
-            .get(&url)
-            .header("apptoken", &self.token)
-            .send()
-            .await
-            .ok()?;
+        let sent = self.client.get(&url).header("apptoken", &self.token).send().await;
+
+        let Ok(response) = sent else {
+            self.status = "not-running";
+            return None;
+        };
 
         if response.status() == reqwest::StatusCode::UNAUTHORIZED
             || response.status() == reqwest::StatusCode::FORBIDDEN
         {
-            if !self.warned {
-                eprintln!("Cider did not accept cider_token. Using Now Playing for Cider instead.");
-                self.warned = true;
-            }
+            self.status = "token-refused";
             return None;
         }
 
         if !response.status().is_success() {
+            self.status = "not-running";
             return None;
         }
 

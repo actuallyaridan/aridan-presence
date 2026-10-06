@@ -1,0 +1,224 @@
+/* The activity cards, copied from aridan.net's
+   src/css/lanyard.css with the same selectors, so the two can be compared
+   line for line and kept in step. Left out: what only the site needs - the
+   loading spinners, the collapse animation, the scroll buttons.
+
+   Changed from the site, and only these:
+   - The cards are display: flex from the start. The site hides them until
+     Lanyard has answered; here the window only opens once there is a status.
+   - #amTime takes the place of #apple-link, at the same size. */
+
+@font-face {
+    font-family: SevenSegment;
+    font-style: normal;
+    font-display: swap;
+    src: url(fonts/SevenSegment.otf) format("opentype");
+}
+
+/* ---------- The row of cards ---------- */
+
+div#discord {
+    display: flex;
+    flex-direction: row;
+    justify-content: safe center;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+div#discord::-webkit-scrollbar {
+    display: none;
+}
+
+#discordActivity,
+#amLanyardDiscord {
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    border-radius: 12px;
+    margin: 12px;
+    color: var(--project-color);
+    text-align: center;
+    transition: width 0.2s;
+}
+
+#discordActivity,
+#amLanyardDiscord {
+    min-width: 250px;
+    max-width: 350px;
+    word-wrap: break-word;
+    justify-content: space-between;
+}
+
+#activityLogoLarge {
+    border-radius: 5px;
+    margin: 12px;
+    width: auto;
+    height: 96px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+#amActivityLogoLarge {
+    border-radius: 50%;
+    margin: 12px;
+    object-fit: cover;
+    animation: spin 2.5s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+@keyframes spin {
+    to {
+        transform: translateZ(0) rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #amActivityLogoLarge {
+        animation: none;
+    }
+}
+
+#activityName,
+#activityState,
+#activityDetails,
+#amActivityName,
+#amActivityDetails,
+#amActivityState {
+    color: var(--paragraph-color);
+    margin-top: 6px;
+    margin-right: 6px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+#activityDetails,
+#amActivityDetails {
+    color: var(--subtitle-color);
+}
+
+#activityTime,
+#ActivityTime,
+#amActivityTime {
+    display: inline;
+    color: var(--paragraph-color);
+    font-family: SevenSegment, monospace, Jost, sans-serif;
+}
+
+span.titleActivity {
+    text-align: left;
+    width: 100%;
+    margin-bottom: 12px;
+    color: var(--paragraph-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.titleActivity > .activityHeading {
+    text-align: left;
+    min-width: 0;
+}
+
+.titleActivity > .activityHeading > i {
+    margin-right: 0;
+}
+
+.titleActivity h3 {
+    display: inline !important;
+    margin-left: 0.2em;
+    font-size: 1em;
+    font-weight: normal !important;
+}
+
+#discordActivity,
+#amLanyardDiscord {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: start;
+    text-align: left;
+    margin: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background-color: var(--card-background-color);
+    width: min-content;
+}
+
+.style-liquid-glass #discordActivity,
+.style-liquid-glass #amLanyardDiscord {
+    background-color: var(--liquid-glass-button-background);
+    border: 1px solid var(--liquid-glass-button-border);
+}
+
+#discordActivityImages,
+#amDiscordActivityImages {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+.progress-bar-container {
+    position: relative;
+    width: 100%;
+    height: 5px;
+    background-color: var(--card-background-color);
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#discordActivityInfo,
+#amDiscordActivityInfo {
+    width: 100%;
+    transition: width 0.2s;
+    flex: 1;
+}
+
+div#Timeremaning {
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    flex-grow: 1;
+}
+
+div#Timeremaning > p {
+    padding: 0.2rem;
+    color: var(--paragraph-color);
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 2px;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.2s linear;
+    will-change: transform;
+}
+
+/* In place of #apple-link, at its size: 41px tall, 6px above, 3px below. */
+#amTime {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 41px;
+    margin: auto;
+    margin-top: 6px;
+    margin-bottom: 3px;
+    flex-grow: 1;
+    color: var(--paragraph-color);
+    font-variant-numeric: tabular-nums;
+}

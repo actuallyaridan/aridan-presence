@@ -8,6 +8,7 @@
 
 use super::display_name;
 use crate::config::Config;
+use crate::state::PlayerSeen;
 use crate::track::Track;
 use std::collections::HashMap;
 use zbus::proxy::CacheProperties;
@@ -24,6 +25,9 @@ pub struct NowPlaying {
     // desktop session - over SSH, say.
     connection: Option<Connection>,
     allowed: Vec<String>,
+
+    // Every player found on the last look, allowed or not, for the window.
+    pub seen: Vec<PlayerSeen>,
 }
 
 impl NowPlaying {
@@ -39,6 +43,7 @@ impl NowPlaying {
         NowPlaying {
             connection: connection,
             allowed: config.allowed_players.clone(),
+            seen: Vec::new(),
         }
     }
 
@@ -48,18 +53,34 @@ impl NowPlaying {
         let connection = self.connection.as_ref()?;
 
         let mut candidates: Vec<(usize, String, String)> = Vec::new();
+        let mut seen = Vec::new();
 
         for bus_name in list_players(connection).await {
             let Some(player) = player_of(connection, &bus_name).await else {
                 continue;
             };
 
-            let Some(rank) = self.allowed.iter().position(|allowed| *allowed == player) else {
+            let status: String = read_property(connection, &bus_name, PLAYER_INTERFACE, "PlaybackStatus")
+                .await
+                .unwrap_or_default();
+
+            let rank = self.allowed.iter().position(|allowed| *allowed == player);
+
+            seen.push(PlayerSeen {
+                key: player.clone(),
+                name: display_name(&player),
+                allowed: rank.is_some(),
+                playing: status == "Playing",
+            });
+
+            let Some(rank) = rank else {
                 continue;
             };
 
             candidates.push((rank, player, bus_name));
         }
+
+        self.seen = seen;
 
         candidates.sort();
 

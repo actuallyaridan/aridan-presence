@@ -1,6 +1,6 @@
 [package]
 name = "aridan-presence"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
@@ -9,8 +9,21 @@ reqwest = { version = "0.13.5", default-features = false, features = ["json", "q
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sysinfo = "0.39.6"
+tauri = { version = "2.12.1", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2.7.0"
+tauri-plugin-single-instance = "2.5.2"
 tokio = { version = "1.53.2", features = ["rt", "macros", "time", "net", "signal", "sync", "io-util"] }
 toml = "1.1.6"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+# The finished build: debugging information left out, and the whole program
+# optimised together, which makes it a good deal smaller.
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

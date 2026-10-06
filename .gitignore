@@ -1,4 +1,5 @@
-node_modules/
-.wrangler/
 .dev.vars
+gen/
+node_modules/
 target/
+.wrangler/

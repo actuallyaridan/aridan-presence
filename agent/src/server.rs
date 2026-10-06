@@ -5,6 +5,8 @@ use crate::config::Config;
 use serde::Serialize;
 use std::time::Duration;
 
+// Clone makes a copy that shares the same connections, which is cheap.
+#[derive(Clone)]
 pub struct Server {
     client: reqwest::Client,
     device_url: String,
@@ -28,9 +30,14 @@ impl Server {
 
         Server {
             client: client,
-            device_url: format!("{}/devices/{}", config.server, config.device),
+            device_url: format!("{}/devices/{}", config.server, config.device_name()),
             token: config.token.clone(),
         }
+    }
+
+    // Where reports go, which is what tells two Servers apart.
+    pub fn target(&self) -> &str {
+        &self.device_url
     }
 
     pub async fn report(&self, activities: &[Activity]) -> Result<(), String> {

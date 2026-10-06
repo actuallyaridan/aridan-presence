@@ -1,0 +1,246 @@
+/* What is only the app's. Everything that looks like the site comes from
+   site.css and activity.css, which are copied from it; this is the window
+   around them. */
+
+@font-face {
+  font-family: Jost;
+  font-weight: 100 900;
+  src: url(fonts/Jost.ttf);
+}
+
+:root {
+  /* The settings column, and how far the page moves to clear it. The page
+     is scaled about its centre, which pulls its right edge in by 5vw. */
+  --settings-width: min(400px, calc(100vw - 140px));
+  --reveal-shift: calc(5vw - var(--settings-width) - 32px);
+
+  /* Set by the site's project pages; the activity cards borrow it. */
+  --project-color: var(--paragraph-color);
+}
+
+/* A program, not a page: the window itself never scrolls, text is only
+   selectable where it is meant to be copied, and the pointer is an arrow. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  color: var(--text-color);
+  background-color: color-mix(in srgb, var(--accent-fill) 22%, #0b0b0b);
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Draws Jost the way Chrome does. Otherwise WebKitGTK snaps the letters
+     to the pixel grid ("hinting"), which bends its round shapes. */
+  text-rendering: geometricPrecision;
+}
+
+/* No frosted glass. The site's glass blurs whatever is behind it, and
+   Chrome draws that cleanly, but WebKitGTK leaves a glow around the edges
+   of everything that has it - text, the back arrow, the toggles. Everything
+   in the app sits on a solid colour anyway, so there is nothing behind the
+   glass to blur. */
+*,
+*::before,
+*::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Focus goes back to the settings button when settings closes. The ring
+   that comes with it is for the keyboard; after a click it only looks like
+   something is still selected. */
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ---------- The page, and moving it aside (styles.css on the site) ---------- */
+
+#page {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+  clip-path: inset(0 round 0);
+  transition:
+    transform .45s cubic-bezier(.2, .8, .2, 1),
+    clip-path .45s ease;
+}
+
+html.revealOpen #page {
+  transform: translateX(var(--reveal-shift)) scale(.9);
+  clip-path: inset(0 round 28px);
+  cursor: pointer;
+}
+
+/* While pushed aside, a click anywhere on the page only brings it back. */
+html.revealOpen #page > * {
+  pointer-events: none;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  border-radius: 28px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform .45s cubic-bezier(.2, .8, .2, 1),
+    opacity .45s ease;
+}
+
+html.revealOpen body::before {
+  transform: translateX(var(--reveal-shift)) scale(.9);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #page,
+  body::before,
+  .revealLayer {
+    transition: none;
+  }
+}
+
+/* ---------- Header ---------- */
+
+/* The site's bar is 80vw of a browser window. In a small window that
+   leaves too little room, so here it runs to 12px from each side. */
+header > div {
+  width: calc(100% - 24px);
+}
+
+/* Whether this computer is on the site, as a dot beside the buttons. Its
+   colours are the site's own: the green and red accent themes' colours
+   (.color-green and .color-red in styles.css) for sharing and for a
+   problem, the monochrome accent's grey for paused, and - as no accent
+   theme is orange - the orange of the site's "idle" status pill for not
+   set up yet. It changes colour at once; nothing about it moves. The words
+   are in the footer, and in its tooltip. */
+.statusDot {
+  display: block;
+  padding: 8px;
+  font-size: 0.6em;
+  color: #666666;
+  cursor: default;
+  transition: none;
+  animation: none;
+}
+
+.statusDot > i {
+  margin: 0;
+}
+
+.statusDot.good {
+  color: #359d46;
+}
+
+.statusDot.warn {
+  color: rgb(242, 132, 29);
+}
+
+.statusDot.bad {
+  color: #ff3b30;
+}
+
+/* The site's footer is 80vw of the page, with room above for the page's
+   last section. The window has its own width to fill, and the footer sits
+   below the cards' 12px margin. */
+footer {
+  width: 100%;
+  margin-top: 0;
+  padding: 0 20px 18px;
+}
+
+/* The app's name, in the spot the site's highlighted page link has, with
+   the same padding as the links. */
+.brand {
+  display: block;
+  padding: 8px;
+  color: var(--accent-text);
+  cursor: default;
+}
+
+/* ---------- The cards ---------- */
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#amActivityLogoLarge:not([src]),
+#activityLogoLarge:not([src]) {
+  visibility: hidden;
+}
+
+/* ---------- Settings ---------- */
+
+.settingsSaveState {
+  min-height: 1.3em;
+  margin-top: -6px;
+  font-size: 0.85em;
+  text-align: center;
+  color: var(--secondary-title-color);
+}
+
+.settingsSaveState.bad {
+  color: light-dark(#d70015, #ff6961);
+}
+
+.configError {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  color: light-dark(#ba0a00, #ff5046);
+  background-color: rgba(249, 76, 87, 0.15);
+}
+
+.fieldGroup,
+.toggleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A sub-page lines its contents up on the left, as the site's do, which
+   would also shrink the fields to fit their text. */
+.settingsSubpage > .fieldGroup,
+.settingsSubpage > .toggleGroup {
+  width: 100%;
+}
+
+.configPath {
+  font-size: 0.85em;
+  word-break: break-all;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* The log as the site's version list, one entry per line, newest first. */
+.logTime {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+  color: var(--secondary-title-color);
+}
+
+.logList .versionDetail {
+  -webkit-user-select: text;
+  user-select: text;
+}

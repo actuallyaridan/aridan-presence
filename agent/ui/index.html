@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!-- The same classes the site puts on <html>: follow the system's light or
+     dark, the monochrome accent, and the liquid glass style. -->
+<html lang="en" class="theme-auto color-monochrome style-liquid-glass">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>aridan-presence</title>
+  <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="activity.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <!-- Settings, as on the site: a layer under the page that shows when the
+       page slides aside. Its markup follows settingsModal.js and
+       settingsPanel.js on the site. -->
+  <aside id="settingsLayer" class="revealLayer settingsLayer theme-dark" aria-labelledby="settingsTitle" tabindex="-1">
+    <div class="settingsSheet">
+      <div class="settingsSheetHeader">
+        <button type="button" id="settingsBack" class="settingsBack" aria-label="Back" hidden>
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <h2 id="settingsTitle">Settings</h2>
+      </div>
+
+      <div id="settingsPanel" class="settingsPanel" data-page="main">
+        <!-- The settings themselves -->
+        <div class="settingsPage" data-page="main">
+          <p id="saveState" class="settingsSaveState" aria-live="polite"></p>
+
+          <div class="modalSettings">
+            <p id="configError" class="configError hide"></p>
+
+            <div>
+              <h3 class="settingsGroupHeading"><i class="fa-solid fa-sliders" aria-hidden="true"></i>General</h3>
+              <div class="toggleGroup">
+                <div class="checkbox-wrapper-51">
+                  <label for="autostart" class="title">Start when I log in</label>
+                  <input type="checkbox" id="autostart">
+                  <label for="autostart" class="toggle" aria-hidden="true">
+                    <span><svg width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M5,1 L5,1 C2.790861,1 1,2.790861 1,5 L1,5 C1,7.209139 2.790861,9 5,9 L5,9 C7.209139,9 9,7.209139 9,5 L9,5 C9,2.790861 7.209139,1 5,1 L5,9 L5,1 Z"></path></svg></span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="apps">
+                  <span class="title">Apps that may be shared</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="settingsGroupHeading"><i class="fa-solid fa-plug" aria-hidden="true"></i>Connections</h3>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="server">
+                  <span class="title">Server</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="cider">
+                  <span class="title">Cider</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="artwork">
+                  <span class="title">Artwork</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="settingsGroupHeading"><i class="fa-solid fa-bug" aria-hidden="true"></i>Developer options</h3>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="sources">
+                  <span class="title">Sources</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div>
+                <button type="button" class="settingsNavRow" data-subpage="log">
+                  <span class="title">Log</span>
+                  <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p class="modalDescription">
+            version <span id="version"></span><br>
+            <span id="configPath" class="configPath"></span>
+          </p>
+        </div>
+
+        <!-- General and Connections' own pages -->
+        <div class="settingsPage" data-page="apps" data-title="Apps that may be shared" hidden>
+          <div class="modalSettings settingsSubpage">
+            <div id="allowed" class="toggleGroup"></div>
+            <p class="modalDescription">Anything else playing - a video call, a training video - is never shared.</p>
+          </div>
+        </div>
+
+        <div class="settingsPage" data-page="server" data-title="Server" hidden>
+          <div class="modalSettings settingsSubpage">
+              <div class="fieldGroup">
+                <label class="editorField">
+                  <span>Token</span>
+                  <span class="editorInput">
+                    <input type="password" id="token" class="button" spellcheck="false" data-setting>
+                    <span class="fieldHint" tabindex="0">
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                      <span class="fieldHintText" role="tooltip">The AGENT_TOKEN the Worker was given.</span>
+                    </span>
+                  </span>
+                </label>
+                <label class="editorField">
+                  <span>Address</span>
+                  <input type="url" id="server" class="button" spellcheck="false" data-setting>
+                </label>
+                <label class="editorField">
+                  <span>Computer name</span>
+                  <span class="editorInput">
+                    <input type="text" id="device" class="button" spellcheck="false" data-setting>
+                    <span class="fieldHint" tabindex="0">
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                      <span class="fieldHintText" role="tooltip">Leave empty to use one made from this computer's name.</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+          </div>
+        </div>
+
+        <div class="settingsPage" data-page="cider" data-title="Cider" hidden>
+          <div class="modalSettings settingsSubpage">
+              <div class="fieldGroup">
+                <label class="editorField">
+                  <span>API token</span>
+                  <span class="editorInput">
+                    <input type="password" id="ciderToken" class="button" spellcheck="false" placeholder="Optional" data-setting>
+                    <span class="fieldHint" tabindex="0">
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                      <span class="fieldHintText" role="tooltip">From Cider › Settings › Connectivity. Without it, Cider is read through Now Playing.</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+          </div>
+        </div>
+
+        <div class="settingsPage" data-page="artwork" data-title="Artwork" hidden>
+          <div class="modalSettings settingsSubpage">
+              <div class="fieldGroup">
+                <label class="editorField">
+                  <span>iTunes stores</span>
+                  <span class="editorInput">
+                    <input type="text" id="countries" class="button" spellcheck="false" data-setting>
+                    <span class="fieldHint" tabindex="0">
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                      <span class="fieldHintText" role="tooltip">Searched in this order, separated by commas.</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+          </div>
+        </div>
+
+        <!-- Where each source stands, as the site's Component versions -->
+        <div class="settingsPage" data-page="sources" data-title="Sources" hidden>
+          <div class="modalSettings settingsSubpage">
+            <ul id="sourceList" class="versionList"></ul>
+          </div>
+        </div>
+
+        <!-- What the app has been doing -->
+        <div class="settingsPage" data-page="log" data-title="Log" hidden>
+          <div class="modalSettings settingsSubpage">
+            <ul id="logLines" class="versionList logList"></ul>
+          </div>
+        </div>
+
+        <div class="modalButtons">
+          <button type="button" id="done" class="button primary">Done</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- The page -->
+  <div id="page">
+    <header>
+      <div>
+        <ul class="notAList">
+          <li class="active"><span class="brand">aridan-presence</span></li>
+        </ul>
+
+        <ul class="notAList">
+          <li><span id="statusDot" class="statusDot" role="img"><i class="fa-solid fa-circle" aria-hidden="true"></i></span></li>
+          <li><button type="button" id="pause" class="noUI" title="Pause sharing" aria-label="Pause sharing"><i class="fa-solid fa-pause" aria-hidden="true"></i></button></li>
+          <li><button type="button" id="openSettings" class="noUI" title="Settings (Ctrl+,)" aria-label="Settings"><i class="fa-solid fa-gear" aria-hidden="true"></i></button></li>
+        </ul>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- The site's activity cards, with its markup and IDs, so activity.css
+           (copied from lanyard.css) applies to them unchanged. -->
+      <div id="discord" role="group" aria-label="Activities">
+        <div id="amLanyardDiscord">
+          <span class="titleActivity">
+            <span class="activityHeading">
+              <i class="fa-brands fa-itunes-note" aria-hidden="true"></i><h3 id="amActivityName">Nothing playing</h3>
+            </span>
+          </span>
+          <div id="amDiscordActivityImages">
+            <img id="amActivityLogoLarge" draggable="false" width="96" height="96" alt="">
+          </div>
+          <div id="amDiscordActivityInfo">
+            <p id="amActivityDetails"></p>
+            <p id="amActivityState"></p>
+            <div class="progress-bar-container" id="amProgressTrack">
+              <div class="progress-bar" id="amProgressBar"></div>
+            </div>
+          </div>
+          <p id="amTime"></p>
+        </div>
+
+        <!-- Like the site, the first thing shared besides music. -->
+        <div id="discordActivity" class="hide">
+          <span class="titleActivity">
+            <span class="activityHeading">
+              <i class="fa-regular fa-window-maximize" aria-hidden="true"></i><h3 id="activityName"></h3>
+            </span>
+          </span>
+          <div id="discordActivityImages">
+            <img id="activityLogoLarge" draggable="false" width="96" height="96" alt="">
+          </div>
+          <div id="discordActivityInfo">
+            <p id="activityDetails"></p>
+            <p id="activityState"></p>
+            <div class="progress-bar-container hide" id="ProgressTrack">
+              <div class="progress-bar" id="ProgressBar"></div>
+            </div>
+            <div class="progress-bar-container activitySeparator" aria-hidden="true"></div>
+            <div id="Timeremaning">
+              <p id="ActivityTime">-:-</p>
+              <p id="Remaining" class="hide">remaining</p>
+              <p id="Elapsed" class="hide">elapsed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- The site's footer, with whether this computer is on the site in
+         place of the copyright line. -->
+    <footer>
+      <p class="footerNote"><span id="statusText">Starting…</span></p>
+    </footer>
+  </div>
+</body>
+</html>
