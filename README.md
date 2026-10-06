@@ -23,12 +23,32 @@ For local testing, put `AGENT_TOKEN=...` in `worker/.dev.vars` and run
 
 ## Agent
 
-Written in Rust. The first run writes a settings file and stops:
+A tray app, written in Rust with [Tauri](https://tauri.app). The window is
+plain HTML, CSS and JavaScript in `agent/ui/`, styled with aridan.net's own
+CSS. The first time it opens, it shows Settings: put the Worker's token in
+Connections > Server, and switch on General > Start when I log in.
+
+### Linux
 
 ```sh
 cd agent
-cargo run
+npm install
+npx tauri build --no-bundle
+./linux/install.sh
 ```
 
-Fill in `token` in the file it names, then run it again. To have it start
-with the desktop on Linux, see `agent/linux/aridan-presence.service`.
+### Windows
+
+Every push that changes `agent/` builds the installers on GitHub: open the
+run under Actions and download `aridan-presence-windows` from its Artifacts.
+The `.exe` inside installs for the current user without admin rights.
+
+Windows will warn that the installer is from an unknown publisher, since it
+is not signed: More info > Run anyway.
+
+### While working on it
+
+```sh
+cd agent
+npx tauri dev
+```

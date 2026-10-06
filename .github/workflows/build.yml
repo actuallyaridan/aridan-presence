@@ -1,0 +1,52 @@
+# Builds the app's installers on GitHub's own machines, since a Windows
+# installer is best made on Windows. Runs on every push that changes the
+# app, and can be started by hand from the Actions tab.
+#
+# The installers end up under the run's "Artifacts", as a zip to download.
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agent/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: agent
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Keeps compiled dependencies between runs, so a build after a small
+      # change takes minutes rather than a quarter of an hour.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: agent
+
+      - run: npm ci
+
+      # Makes both installers: the NSIS .exe, which installs for the current
+      # user without needing admin rights, and an .msi.
+      - run: npx tauri build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aridan-presence-windows
+          path: |
+            agent/target/release/bundle/nsis/*.exe
+            agent/target/release/bundle/msi/*.msi
+          if-no-files-found: error

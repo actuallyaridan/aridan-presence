@@ -47,13 +47,12 @@ const MAX_FRAME_BYTES: u32 = 64 * 1024;
 // How often to check whether Discord has been opened or closed.
 const CHECK_INTERVAL: Duration = Duration::from_secs(10);
 
-// Process names of Discord and the clients that stand in for it, lowercased.
-// Each of them opens discord-ipc-0 itself.
-const DISCORD_PROCESSES: [&str; 7] = [
+// Process names of Discord and the clients that stand in for it, lowercased
+// and without Windows' ".exe". Each of them opens discord-ipc-0 itself.
+const DISCORD_PROCESSES: [&str; 6] = [
     "discord",
     "discordcanary",
     "discordptb",
-    "discord.exe",
     "vesktop",
     "legcord",
     "armcord",
@@ -173,8 +172,9 @@ fn discord_is_running(system: &mut System) -> bool {
 
     for process in system.processes().values() {
         let name = process.name().to_string_lossy().to_lowercase();
+        let name = name.trim_end_matches(".exe");
 
-        if DISCORD_PROCESSES.contains(&name.as_str()) {
+        if DISCORD_PROCESSES.contains(&name) {
             return true;
         }
     }
@@ -515,7 +515,8 @@ where
 /* ---------- Where the socket is ---------- */
 
 // On Linux and macOS it is a file in the user's runtime or temp folder. On
-// Windows it is a named pipe, which comes later.
+// Windows it is a named pipe. Both modules offer the same four things:
+// Listener, listen(), accept() and release().
 #[cfg(unix)]
 mod platform {
     use std::io;
@@ -570,4 +571,74 @@ mod platform {
     pub fn release() {
         let _ = std::fs::remove_file(socket_path());
     }
+}
+
+#[cfg(windows)]
+mod platform {
+    use std::io;
+    use std::sync::Mutex;
+    use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeServer, ServerOptions};
+
+    const PIPE: &str = r"\\.\pipe\discord-ipc-0";
+
+    // What Windows answers when asked to open a pipe that does not exist.
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
+
+    // A named pipe takes one connection per copy of it, so there is always a
+    // fresh copy waiting for the next app. This holds it.
+    pub struct Listener {
+        waiting: Mutex<Option<NamedPipeServer>>,
+    }
+
+    pub fn listen() -> io::Result<Listener> {
+        // Unlike a socket file, a pipe goes away with whoever made it, so
+        // there is nothing left over to clear. If it can be opened, someone is
+        // serving it; if Windows says there is no such pipe, it is free.
+        match ClientOptions::new().open(PIPE) {
+            Ok(_) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::AddrInUse,
+                    "something else is already listening on it",
+                ));
+            }
+            Err(error) => {
+                if error.raw_os_error() != Some(ERROR_FILE_NOT_FOUND) {
+                    // Busy, or not ours to open: in use either way.
+                    return Err(error);
+                }
+            }
+        }
+
+        // first_pipe_instance makes this fail rather than share the name, in
+        // case Discord made the pipe in the moment since the check above.
+        let first = ServerOptions::new().first_pipe_instance(true).create(PIPE)?;
+
+        Ok(Listener {
+            waiting: Mutex::new(Some(first)),
+        })
+    }
+
+    pub async fn accept(listener: &Listener) -> io::Result<NamedPipeServer> {
+        // Taken out of the lock before waiting, since a lock cannot be held
+        // across an await. If this wait is ever cancelled, the copy goes with
+        // it, which is why an empty slot just gets a new one.
+        let taken = listener.waiting.lock().unwrap().take();
+
+        let server = match taken {
+            Some(server) => server,
+            None => ServerOptions::new().create(PIPE)?,
+        };
+
+        let connected = server.connect().await;
+
+        // A fresh copy for the next app, whatever happened to this one.
+        let next = ServerOptions::new().create(PIPE)?;
+        *listener.waiting.lock().unwrap() = Some(next);
+
+        connected?;
+        Ok(server)
+    }
+
+    // Nothing to tidy: the pipe goes away when the last copy of it is closed.
+    pub fn release() {}
 }

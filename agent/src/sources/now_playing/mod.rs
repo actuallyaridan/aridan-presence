@@ -12,11 +12,17 @@ mod linux;
 #[cfg(target_os = "linux")]
 pub use linux::NowPlaying;
 
-// Until Windows and macOS have theirs, they get one that never finds anything.
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+mod windows;
+
+#[cfg(windows)]
+pub use self::windows::NowPlaying;
+
+// Until macOS has its own, it gets one that never finds anything.
+#[cfg(not(any(target_os = "linux", windows)))]
 mod unsupported;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", windows)))]
 pub use unsupported::NowPlaying;
 
 // The name the site shows for a player, from the short name the settings file
@@ -29,6 +35,7 @@ pub fn display_name(player: &str) -> String {
         "firefox" => "Firefox",
         "safari" => "Safari",
         "chrome" => "Chrome",
+        "edge" => "Microsoft Edge",
         _ => "",
     };
 
