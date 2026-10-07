@@ -5,6 +5,7 @@
 // memory, which is a lot for something that sits in the tray all day.
 
 use crate::config::Config;
+use crate::look;
 use crate::server::Server;
 use crate::state::Shared;
 use std::sync::Arc;
@@ -27,6 +28,8 @@ pub fn show(app: &AppHandle) {
 
     match WebviewWindowBuilder::from_config(app, settings) {
         Ok(builder) => {
+            let builder = look::dress(builder);
+
             if let Err(error) = builder.build() {
                 eprintln!("Could not open the window: {}", error);
             }

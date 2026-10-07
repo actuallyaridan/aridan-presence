@@ -59,6 +59,18 @@
 
   const root = document.documentElement;
 
+  // On Windows, settings is a page of its own that takes the whole window,
+  // as in Windows' Settings app, rather than a layer the page slides aside
+  // from. It is left with a back arrow, so it has no Done button, and its
+  // title is a trail - "Settings > Server" - as Settings' titles are.
+  const SETTINGS_AS_PAGE = root.classList.contains("platform-windows");
+
+  // On the site the settings are always dark. On Windows they are a page
+  // like any other, so they follow the system's light or dark.
+  if (SETTINGS_AS_PAGE) {
+    els.settingsLayer.classList.remove("theme-dark");
+  }
+
   let status = null;
   let config = null;
   let closingTimer = 0;
@@ -122,12 +134,50 @@
       if (shown && page.dataset.title) title = page.dataset.title;
     }
 
-    els.settingsTitle.textContent = title;
-    els.settingsBack.hidden = name === "main";
+    showSettingsTitle(name, title);
+    els.settingsBack.hidden = name === "main" && !SETTINGS_AS_PAGE;
+
+    // The site's layer scrolls as a whole; the Windows page only below its
+    // title. Both start at the top.
     els.settingsLayer.scrollTop = 0;
+    els.settingsPanel.scrollTop = 0;
 
     if (name === "log") refreshLog();
     if (name === "sources") renderSources();
+  }
+
+  // Just the page's name, or on Windows the trail to it, where "Settings"
+  // can be clicked to go back, as in Windows' Settings app.
+  function showSettingsTitle(name, title) {
+    if (!SETTINGS_AS_PAGE || name === "main") {
+      els.settingsTitle.textContent = title;
+      return;
+    }
+
+    const parent = document.createElement("button");
+    parent.type = "button";
+    parent.className = "settingsCrumb";
+    parent.textContent = "Settings";
+    parent.addEventListener("click", () => showSettingsPage("main"));
+
+    const separator = document.createElement("i");
+    separator.className = "fa-solid fa-chevron-right settingsCrumbSeparator";
+    separator.setAttribute("aria-hidden", "true");
+
+    const current = document.createElement("span");
+    current.textContent = title;
+
+    els.settingsTitle.replaceChildren(parent, separator, current);
+  }
+
+  // Back goes to Settings' main page, and from there - on Windows, where
+  // it is also shown on the main page - out of settings.
+  function goBack() {
+    if (els.settingsPanel.dataset.page !== "main") {
+      showSettingsPage("main");
+    } else {
+      closeSettings();
+    }
   }
 
   // The button is on the page, and a click on the page closes settings - so
@@ -138,7 +188,7 @@
   });
 
   els.done.addEventListener("click", closeSettings);
-  els.settingsBack.addEventListener("click", () => showSettingsPage("main"));
+  els.settingsBack.addEventListener("click", goBack);
 
   for (const row of document.querySelectorAll("[data-subpage]")) {
     row.addEventListener("click", () => showSettingsPage(row.dataset.subpage));
@@ -150,12 +200,9 @@
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      if (els.settingsPanel.dataset.page !== "main") {
-        showSettingsPage("main");
-      } else {
-        closeSettings();
-      }
+    // Alt+Left is back in Windows' own apps, as in a browser.
+    if (event.key === "Escape" || (event.key === "ArrowLeft" && event.altKey)) {
+      goBack();
       return;
     }
 
@@ -163,6 +210,14 @@
     if (event.key === "," && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       openSettings();
+    }
+  });
+
+  // The back button on the side of a mouse, which is button 3.
+  document.addEventListener("mouseup", (event) => {
+    if (event.button === 3 && settingsOpen()) {
+      event.preventDefault();
+      goBack();
     }
   });
 

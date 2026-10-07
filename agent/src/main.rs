@@ -17,6 +17,7 @@ mod artwork;
 mod commands;
 mod config;
 mod engine;
+mod look;
 mod server;
 mod sources;
 mod state;

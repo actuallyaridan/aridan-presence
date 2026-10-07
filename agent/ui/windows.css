@@ -1,0 +1,707 @@
+/* The Windows 11 look. Everything here only applies with platform-windows on
+   <html>, which platform.js puts there, so the other systems never see it.
+
+   Windows' own apps are drawn with what Microsoft calls Fluent: Mica behind
+   the window, Segoe UI for text, settings as rows of cards, and its own
+   switches, text boxes and icons. The colours below are Fluent's, by the
+   names Microsoft gives them, in a light and a dark shade each.
+
+   The activity cards are left as the site draws them, Jost and all: they
+   show what aridan.net will show. */
+
+.platform-windows {
+    --win-text: light-dark(rgba(0, 0, 0, 0.896), #ffffff);
+    --win-text-secondary: light-dark(rgba(0, 0, 0, 0.606), rgba(255, 255, 255, 0.786));
+    --win-text-on-accent: light-dark(#ffffff, #000000);
+
+    /* AccentFillColorDefault, from the accent picked in Windows' settings
+       (look.rs), or Windows' own blue if it could not be read. */
+    --win-accent: light-dark(var(--system-accent-light, #005fb8), var(--system-accent-dark, #60cdff));
+
+    /* Settings' rows: CardBackgroundFillColorDefault and CardStrokeColorDefault,
+       and ControlFillColorSecondary/Tertiary when pointed at and pressed. */
+    --win-card: light-dark(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.0512));
+    --win-card-hover: light-dark(rgba(249, 249, 249, 0.5), rgba(255, 255, 255, 0.0837));
+    --win-card-pressed: light-dark(rgba(249, 249, 249, 0.3), rgba(255, 255, 255, 0.0326));
+    --win-card-stroke: light-dark(rgba(0, 0, 0, 0.0578), rgba(0, 0, 0, 0.1));
+
+    /* Buttons with no background until pointed at: SubtleFillColor. */
+    --win-subtle-hover: light-dark(rgba(0, 0, 0, 0.0373), rgba(255, 255, 255, 0.0605));
+    --win-subtle-pressed: light-dark(rgba(0, 0, 0, 0.0241), rgba(255, 255, 255, 0.0419));
+
+    /* Text boxes and the switch when off: ControlFillColorDefault,
+       ControlStrokeColorDefault and ControlStrongStrokeColorDefault. */
+    --win-control: light-dark(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.0605));
+    --win-control-focused: light-dark(#ffffff, rgba(30, 30, 30, 0.7));
+    --win-control-stroke: light-dark(rgba(0, 0, 0, 0.0578), rgba(255, 255, 255, 0.0698));
+    --win-control-strong-stroke: light-dark(rgba(0, 0, 0, 0.4458), rgba(255, 255, 255, 0.5442));
+    --win-control-off: light-dark(rgba(0, 0, 0, 0.0241), rgba(0, 0, 0, 0.1));
+
+    /* Windows' plain window backgrounds, for when there is no Mica - on
+       Windows 10. */
+    --win-background: light-dark(#f3f3f3, #202020);
+
+    --win-font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", sans-serif;
+    --win-font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", sans-serif;
+    --win-icons: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+}
+
+/* ---------- Text ---------- */
+
+/* Segoe UI everywhere but the activity cards. site.css puts Jost on every
+   element by name, so this has to as well; :where() keeps it from
+   outranking Font Awesome's own font on its icons. */
+:where(.platform-windows) body,
+:where(.platform-windows) * {
+    font-family: var(--win-font);
+}
+
+:where(.platform-windows #discord),
+:where(.platform-windows #discord) * {
+    font-family: "Jost", var(--win-font);
+}
+
+.platform-windows body {
+    /* Segoe is made for Windows' own way of drawing text. */
+    text-rendering: auto;
+}
+
+/* ---------- The window ---------- */
+
+/* With Mica behind the window, nothing is drawn under the page, or the
+   material would be painted over. Without it, Windows' own plain colour. */
+.platform-windows body,
+.platform-windows #page {
+    background: var(--win-background);
+}
+
+.platform-windows.material body,
+.platform-windows.material #page {
+    background: transparent;
+}
+
+/* ---------- Icons ----------
+   Windows' own icons, from the Segoe Fluent Icons font that comes with
+   Windows 11 (Segoe MDL2 Assets on Windows 10, with the same icons in the
+   same places). Font Awesome draws each icon from --fa in --fa-family, so
+   pointing those at Windows' font is all it takes. */
+
+.platform-windows header button .fa-solid,
+.platform-windows .settingsLayer .fa-solid {
+    --fa-family: var(--win-icons);
+    --fa-style: 400;
+}
+
+.platform-windows .fa-gear {
+    --fa: "\E713";
+}
+
+.platform-windows .fa-pause {
+    --fa: "\E769";
+}
+
+.platform-windows .fa-play {
+    --fa: "\E768";
+}
+
+.platform-windows .fa-chevron-left {
+    --fa: "\E72B";
+}
+
+.platform-windows .fa-chevron-right {
+    --fa: "\E76C";
+}
+
+.platform-windows .fa-circle-info {
+    --fa: "\E946";
+}
+
+/* ---------- The bar at the top ---------- */
+
+/* Windows already writes the app's name in the title bar, right above. */
+.platform-windows .brand {
+    display: none;
+}
+
+.platform-windows header > div {
+    height: auto;
+    margin: 0 auto;
+    padding: 8px 0 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.platform-windows ul.notAList {
+    padding: 0;
+    gap: 4px;
+}
+
+.platform-windows li.active {
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* Fluent's "subtle" buttons: only a shape when pointed at. */
+.platform-windows li > button.noUI {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    top: 0;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    color: var(--win-text);
+    transition: background-color .083s linear;
+}
+
+.platform-windows li > button.noUI:hover {
+    background-color: var(--win-subtle-hover);
+}
+
+.platform-windows li > button.noUI:active {
+    background-color: var(--win-subtle-pressed);
+    color: var(--win-text-secondary);
+    opacity: 1;
+}
+
+.platform-windows li > button.noUI:focus-visible {
+    outline: 2px solid var(--win-text);
+    outline-offset: -2px;
+}
+
+/* ---------- The activity cards ----------
+   The site's glass look for them (lanyard.css), which goes with
+   style-liquid-glass when platform.js takes that off. */
+
+.platform-windows #discordActivity,
+.platform-windows #amLanyardDiscord {
+    background-color: var(--liquid-glass-button-background);
+    border: 1px solid var(--liquid-glass-button-border);
+}
+
+/* ---------- The footer ---------- */
+
+.platform-windows footer > .footerNote {
+    font-size: 12px;
+    color: var(--win-text-secondary);
+}
+
+/* ---------- Settings: a page of its own ----------
+   Instead of the page sliding aside, it fades out and settings comes in
+   over it, the way Windows' Settings moves between pages. */
+
+.platform-windows body::before {
+    display: none;
+}
+
+.platform-windows #page {
+    transition:
+        opacity .167s linear,
+        visibility 0s;
+}
+
+.platform-windows.revealOpen #page {
+    transform: none;
+    clip-path: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity .167s linear,
+        visibility 0s linear .167s;
+}
+
+.platform-windows .revealLayer {
+    z-index: 3;
+    font-size: 14px;
+    color: var(--win-text);
+    background: var(--win-background);
+    overflow: hidden;
+    scrollbar-gutter: auto;
+}
+
+.platform-windows.material .revealLayer {
+    background: transparent;
+}
+
+/* Settings fades in, and its page slides up into place - see
+   .settingsPage below. */
+.platform-windows .revealLayer.revealShown {
+    animation: winFadeIn .167s linear;
+}
+
+/* Leaving fades out quickly, and lets clicks through to the page at once. */
+.platform-windows .revealLayer:not(.revealShown) {
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity .083s linear,
+        visibility 0s linear .083s;
+}
+
+@keyframes winFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes winPageIn {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .platform-windows .revealLayer.revealShown,
+    .platform-windows .settingsPage {
+        animation: none;
+    }
+}
+
+/* The title stays put and only what is under it scrolls. */
+.platform-windows .settingsSheet {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    align-items: stretch;
+    color: var(--win-text);
+}
+
+.platform-windows .settingsSheet .settingsPanel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    align-items: stretch;
+    padding: 0 24px 24px;
+}
+
+.platform-windows .settingsSheetHeader {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 16px 24px 20px 12px;
+    text-align: left;
+}
+
+.platform-windows .settingsSheetHeader::before {
+    display: none;
+}
+
+/* "TitleLarge"-ish: Settings' page titles. */
+.platform-windows .settingsSheetHeader > h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    font-family: var(--win-font-display);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 36px;
+    color: var(--win-text);
+}
+
+.platform-windows .settingsSheetHeader > h2 > span {
+    font: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The trail's parent - "Settings" in "Settings > Server". */
+.platform-windows .settingsCrumb {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--win-text-secondary);
+    cursor: pointer;
+}
+
+.platform-windows .settingsCrumb:hover {
+    color: var(--win-text);
+}
+
+.platform-windows .settingsCrumb:focus-visible {
+    outline: 2px solid var(--win-text);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.platform-windows .settingsCrumbSeparator {
+    width: auto;
+    margin: 0;
+    font-size: 14px;
+    color: var(--win-text-secondary);
+}
+
+.platform-windows .settingsBack {
+    width: 40px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    font-size: 16px;
+    color: var(--win-text);
+    transition: background-color .083s linear;
+}
+
+.platform-windows .settingsBack:hover {
+    color: var(--win-text);
+    background-color: var(--win-subtle-hover);
+}
+
+.platform-windows .settingsBack:active {
+    color: var(--win-text-secondary);
+    background-color: var(--win-subtle-pressed);
+}
+
+.platform-windows .settingsBack:focus-visible {
+    outline: 2px solid var(--win-text);
+    outline-offset: -2px;
+}
+
+/* "Saved" in the top right corner, instead of a gap under the title. */
+.platform-windows .settingsSaveState {
+    position: absolute;
+    top: 26px;
+    right: 24px;
+    min-height: 0;
+    margin: 0;
+    font-size: 12px;
+    color: var(--win-text-secondary);
+}
+
+/* Left with the back arrow instead. */
+.platform-windows .modalButtons {
+    display: none;
+}
+
+/* Moving to another settings page brings it in from below. */
+.platform-windows .settingsPage {
+    animation: winPageIn .333s cubic-bezier(0, 0, 0, 1);
+}
+
+.platform-windows .settingsSheet .modalSettings {
+    gap: 0;
+    padding: 0;
+    color: var(--win-text);
+}
+
+/* A group: its heading, then its rows 4px apart. */
+.platform-windows .settingsPage[data-page="main"] .modalSettings > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.platform-windows .modalSettings > div > div > div {
+    margin: 0;
+}
+
+/* "BodyStrong": Settings' group headings, with no icon. */
+.platform-windows .settingsGroupHeading {
+    margin: 24px 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--win-text);
+}
+
+.platform-windows .settingsPage[data-page="main"] .modalSettings > div:first-of-type .settingsGroupHeading {
+    margin-top: 0;
+}
+
+.platform-windows .settingsGroupHeading > i {
+    display: none;
+}
+
+.platform-windows .fieldGroup,
+.platform-windows .toggleGroup {
+    gap: 4px;
+}
+
+.platform-windows .modalDescription {
+    margin: 16px 0 0;
+    font-size: 12px;
+    text-align: left;
+    color: var(--win-text-secondary);
+}
+
+.platform-windows .configError {
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+/* ---------- Settings: the rows ----------
+   Every row is one of Settings' cards: a switch, a link to another page,
+   or a text box, with its name on the left and its control on the
+   right. */
+
+.platform-windows .checkbox-wrapper-51,
+.platform-windows .settingsNavRow,
+.platform-windows .editorField {
+    min-height: 48px;
+    padding: 8px 16px;
+    border: 1px solid var(--win-card-stroke);
+    border-radius: 4px;
+    background-color: var(--win-card);
+    color: var(--win-text);
+}
+
+.platform-windows .settingsNavRow {
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    transition: background-color .083s linear;
+}
+
+.platform-windows .settingsNavRow:hover {
+    background-color: var(--win-card-hover);
+}
+
+.platform-windows .settingsNavRow:active {
+    background-color: var(--win-card-pressed);
+}
+
+.platform-windows .settingsNavRow:focus-visible {
+    outline: 2px solid var(--win-text);
+    outline-offset: -2px;
+}
+
+.platform-windows .settingsNavRow > .fa-solid {
+    margin: 0;
+    font-size: 12px;
+    opacity: 1;
+    color: var(--win-text);
+}
+
+/* ---------- Settings: switches ----------
+   Fluent's ToggleSwitch: an outlined pill with a small dot when off, the
+   accent colour with the dot on the right when on, and "On" or "Off"
+   written beside it. The site's drawing inside the dot is not used. */
+
+.platform-windows .checkbox-wrapper-51 .title {
+    cursor: default;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle {
+    gap: 12px;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle::after {
+    content: "Off";
+    order: -1;
+    min-width: 22px;
+    color: var(--win-text);
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:checked + .toggle::after {
+    content: "On";
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle::before {
+    left: 0;
+    width: 40px;
+    height: 20px;
+    margin: 0;
+    box-sizing: border-box;
+    border: 1px solid var(--win-control-strong-stroke);
+    border-radius: 10px;
+    background: var(--win-control-off);
+    transition: background-color .083s linear;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle:hover::before {
+    background: var(--win-subtle-hover);
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:checked + .toggle::before {
+    border-color: var(--win-accent);
+    background: var(--win-accent);
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:focus-visible + .toggle::before {
+    outline: 2px solid var(--win-text);
+    outline-offset: 2px;
+}
+
+/* The dot: 12px, 14px when pointed at, 17px wide while pressed. */
+.platform-windows .checkbox-wrapper-51 .toggle span {
+    left: auto;
+    right: 24px;
+    width: 12px;
+    height: 12px;
+    border: none;
+    border-radius: 6px;
+    box-shadow: none;
+    background: var(--win-text-secondary);
+    transform: none;
+    transition:
+        right .167s cubic-bezier(.55, .55, 0, 1),
+        width .083s linear,
+        height .083s linear,
+        background-color .083s linear;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle span svg {
+    display: none;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle:hover span {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    right: 23px;
+}
+
+.platform-windows .checkbox-wrapper-51 .toggle:active span {
+    width: 17px;
+    transform: none;
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:checked + .toggle span {
+    right: 4px;
+    background: var(--win-text-on-accent);
+    transform: none;
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:checked + .toggle:hover span {
+    right: 3px;
+}
+
+.platform-windows .checkbox-wrapper-51 input[type="checkbox"]:checked + .toggle:active span {
+    transform: none;
+}
+
+/* ---------- Settings: text boxes ----------
+   The name on the left with its explanation under it in grey - Settings
+   explains things in words rather than behind an (i) - and the box on the
+   right. The site's markup puts the explanation inside the box's wrapper,
+   so the wrappers are dissolved with display: contents and everything is
+   placed on one grid. */
+
+.platform-windows .editorField {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+    grid-template-areas:
+        "name box"
+        "hint box";
+    align-content: center;
+    column-gap: 16px;
+    row-gap: 0;
+}
+
+.platform-windows .editorField > span:first-child {
+    grid-area: name;
+    font-weight: 400;
+    color: var(--win-text);
+}
+
+.platform-windows .editorInput,
+.platform-windows .fieldHint {
+    display: contents;
+}
+
+.platform-windows .fieldHint > i {
+    display: none;
+}
+
+.platform-windows .fieldHintText {
+    grid-area: hint;
+    position: static;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--win-text-secondary);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Fluent's TextBox: a line along the bottom that becomes the accent
+   colour, and thicker, while typing in it. */
+.platform-windows .editorField input.button {
+    grid-area: box;
+    align-self: center;
+    height: 32px;
+    padding: 0 11px;
+    border: 1px solid var(--win-control-stroke);
+    border-radius: 4px;
+    background: var(--win-control);
+    box-shadow: inset 0 -1px 0 var(--win-control-strong-stroke);
+    font-size: 14px;
+    color: var(--win-text);
+}
+
+.platform-windows .editorField input.button:hover {
+    background: var(--win-card-hover);
+}
+
+.platform-windows .editorField input.button:focus {
+    outline: none;
+    background: var(--win-control-focused);
+    box-shadow: inset 0 -2px 0 var(--win-accent);
+}
+
+.platform-windows .editorField input.button::placeholder {
+    color: var(--win-text-secondary);
+}
+
+.platform-windows .editorField input.button::selection {
+    color: var(--win-text-on-accent);
+    background: var(--win-accent);
+}
+
+/* ---------- Settings: Sources and Log ---------- */
+
+.platform-windows .versionList {
+    gap: 4px;
+}
+
+.platform-windows .versionItem {
+    padding: 12px 16px;
+    border: 1px solid var(--win-card-stroke);
+    border-radius: 4px;
+    background-color: var(--win-card);
+}
+
+.platform-windows .versionName {
+    font-weight: 400;
+    color: var(--win-text);
+}
+
+.platform-windows .versionBadge {
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.platform-windows .versionDetail,
+.platform-windows .logTime {
+    font-size: 12px;
+    color: var(--win-text-secondary);
+}
