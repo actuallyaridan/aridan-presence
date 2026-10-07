@@ -10,6 +10,12 @@ use std::time::Duration;
 const SMALL_SIZE: &str = "100x100bb";
 const WANTED_SIZE: &str = "600x600bb";
 
+// The players whose tracks are looked up, by the name the site shows them
+// under - Cider shows as "Apple Music". A browser plays videos and podcasts
+// as often as songs, and iTunes would happily find a cover for whatever
+// song has a similar name, so anything else goes without.
+const MUSIC_PLAYERS: [&str; 2] = ["Apple Music", "Spotify"];
+
 // A few hundred songs is days of listening. Past that it starts over rather
 // than growing forever.
 const CACHE_LIMIT: usize = 500;
@@ -57,9 +63,14 @@ impl Artwork {
     }
 
     // Fills in the cover, and the song's link while at it, if the track came
-    // without them. A track that already has a cover is left alone.
+    // without them. A track that already has a cover is left alone, and so
+    // is one that is not from a music player.
     pub async fn fill_in(&mut self, track: &mut Track) {
         if track.artwork.is_some() {
+            return;
+        }
+
+        if !is_music_player(&track.player) {
             return;
         }
 
@@ -128,5 +139,24 @@ impl Artwork {
         }
 
         Ok(None)
+    }
+}
+
+fn is_music_player(player: &str) -> bool {
+    MUSIC_PLAYERS.contains(&player)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_music_players_are_looked_up() {
+        assert!(is_music_player("Apple Music"));
+        assert!(is_music_player("Spotify"));
+
+        assert!(!is_music_player("Firefox"));
+        assert!(!is_music_player("Chrome"));
+        assert!(!is_music_player("Microsoft Edge"));
     }
 }

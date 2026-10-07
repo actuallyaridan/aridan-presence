@@ -188,6 +188,62 @@ footer {
   color: var(--secondary-title-color);
 }
 
+/* Each card as tall as what it holds, centred beside the other, rather
+   than stretched to the taller one's height as on the site - a card that
+   folds something away should get smaller, not fill with empty space. */
+div#discord {
+  align-items: center;
+}
+
+/* Parts of a card that fold shut when there is nothing to show in them -
+   the picture, the progress bar, the clock - and open again when there
+   is. The card, centred in the window, shrinks and grows evenly from top
+   and bottom as they do. Each has room for what it holds, and no more, so
+   the folding takes as long as it looks like it does. */
+.foldable {
+  overflow: hidden;
+  transition:
+    max-height .35s cubic-bezier(.2, .8, .2, 1),
+    margin .35s cubic-bezier(.2, .8, .2, 1),
+    padding .35s cubic-bezier(.2, .8, .2, 1),
+    opacity .25s ease;
+}
+
+/* The picture's 96px and its 12px margins. */
+#amDiscordActivityImages,
+#discordActivityImages {
+  max-height: 120px;
+}
+
+.progress-bar-container.foldable {
+  max-height: 5px;
+}
+
+#amTime.foldable {
+  max-height: 41px;
+}
+
+#Timeremaning.foldable {
+  max-height: 60px;
+}
+
+/* !important because the parts' sizes and margins are set by their ids,
+   here and in activity.css, and an id outranks any class. */
+.foldable.folded {
+  max-height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foldable {
+    transition: none;
+  }
+}
+
 #amActivityLogoLarge:not([src]),
 #activityLogoLarge:not([src]) {
   visibility: hidden;

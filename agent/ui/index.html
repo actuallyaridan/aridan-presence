@@ -223,17 +223,17 @@
               <i id="amActivityIcon" class="fa-solid fa-music" aria-hidden="true"></i><h3 id="amActivityName">Nothing playing</h3>
             </span>
           </span>
-          <div id="amDiscordActivityImages">
+          <div id="amDiscordActivityImages" class="foldable folded">
             <img id="amActivityLogoLarge" draggable="false" width="96" height="96" alt="">
           </div>
           <div id="amDiscordActivityInfo">
             <p id="amActivityDetails"></p>
             <p id="amActivityState"></p>
-            <div class="progress-bar-container" id="amProgressTrack">
+            <div class="progress-bar-container foldable folded" id="amProgressTrack">
               <div class="progress-bar" id="amProgressBar"></div>
             </div>
           </div>
-          <p id="amTime"></p>
+          <p id="amTime" class="foldable folded"></p>
         </div>
 
         <!-- Like the site, the first thing shared besides music. -->
@@ -243,17 +243,17 @@
               <i id="activityIcon" class="fa-regular fa-window-maximize" aria-hidden="true"></i><h3 id="activityName"></h3>
             </span>
           </span>
-          <div id="discordActivityImages">
+          <div id="discordActivityImages" class="foldable folded">
             <img id="activityLogoLarge" draggable="false" width="96" height="96" alt="">
           </div>
           <div id="discordActivityInfo">
             <p id="activityDetails"></p>
             <p id="activityState"></p>
-            <div class="progress-bar-container hide" id="ProgressTrack">
+            <div class="progress-bar-container foldable folded" id="ProgressTrack">
               <div class="progress-bar" id="ProgressBar"></div>
             </div>
-            <div class="progress-bar-container activitySeparator" aria-hidden="true"></div>
-            <div id="Timeremaning">
+            <div id="activitySeparator" class="progress-bar-container activitySeparator foldable folded" aria-hidden="true"></div>
+            <div id="Timeremaning" class="foldable folded">
               <p id="ActivityTime">-:-</p>
               <p id="Remaining" class="hide">remaining</p>
               <p id="Elapsed" class="hide">elapsed</p>

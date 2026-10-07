@@ -305,9 +305,7 @@
     els.amActivityState.textContent = music.state || "";
 
     const cover = coverUrl(music.assets?.large_image || "", 192);
-    if (els.amActivityLogoLarge.getAttribute("src") !== cover) {
-      els.amActivityLogoLarge.setAttribute("src", cover);
-    }
+    showImage(els.amActivityLogoLarge, els.amDiscordActivityImages, cover);
 
     els.amActivityLogoLarge.alt = music.assets?.large_text || "";
     els.amActivityLogoLarge.title = music.assets?.large_text || "";
@@ -346,13 +344,7 @@
     els.activityState.textContent = other.state || "";
 
     const image = other.assets?.large_image || "";
-    if (image) {
-      if (els.activityLogoLarge.getAttribute("src") !== image) {
-        els.activityLogoLarge.setAttribute("src", image);
-      }
-    } else {
-      els.activityLogoLarge.removeAttribute("src");
-    }
+    showImage(els.activityLogoLarge, els.discordActivityImages, image);
 
     tickTimes();
   }
@@ -367,6 +359,45 @@
 
     return plain;
   }
+
+  /* ---------- Pictures ----------
+   * A card without a picture folds its picture's row away (.folded in
+   * app.css). The row only opens once the picture has loaded, so it never
+   * opens onto an empty space, and a picture that fails to load folds it
+   * away again. */
+
+  // Pictures that would not load, so they are not tried again every time
+  // the status changes.
+  const brokenImages = new Set();
+
+  function showImage(img, row, url) {
+    if (!url || brokenImages.has(url)) {
+      img.removeAttribute("src");
+      row.classList.add("folded");
+      return;
+    }
+
+    // Already showing, or on its way. A new cover replaces the old one
+    // without folding the row in between.
+    if (img.getAttribute("src") === url) return;
+
+    img.setAttribute("src", url);
+  }
+
+  function watchImage(img, row) {
+    img.addEventListener("load", () => {
+      row.classList.remove("folded");
+    });
+
+    img.addEventListener("error", () => {
+      brokenImages.add(img.getAttribute("src"));
+      img.removeAttribute("src");
+      row.classList.add("folded");
+    });
+  }
+
+  watchImage(els.amActivityLogoLarge, els.amDiscordActivityImages);
+  watchImage(els.activityLogoLarge, els.discordActivityImages);
 
   // Apple's covers can be asked for at any size, by changing the size in
   // the address - see artwork() in the site's lanyardClient.js.
@@ -388,11 +419,13 @@
     const start = music?.timestamps?.start;
     const end = music?.timestamps?.end;
 
-    if (!start || !end) {
-      els.amProgressBar.style.transform = "scaleX(0)";
-      els.amTime.textContent = "";
-      return;
-    }
+    // Without both, there is no telling how far in the song is, so the bar
+    // and the clock fold away rather than show a guess.
+    const known = !!(start && end);
+    els.amProgressTrack.classList.toggle("folded", !known);
+    els.amTime.classList.toggle("folded", !known);
+
+    if (!known) return;
 
     const length = end - start;
     const elapsed = Math.min(length, Math.max(0, Date.now() - start));
@@ -415,16 +448,20 @@
       seconds = (now - timestamps.start) / 1000;
     }
 
-    let text = "-:-";
-    if (seconds !== null) text = clock(seconds);
-    els.ActivityTime.textContent = text;
+    // No times at all: the clock and the line above it fold away, as the
+    // picture does.
+    const known = seconds !== null;
+    els.Timeremaning.classList.toggle("folded", !known);
+    els.activitySeparator.classList.toggle("folded", !known);
+
+    if (known) els.ActivityTime.textContent = clock(seconds);
 
     const countingDown = !!timestamps?.end;
     els.Remaining.classList.toggle("hide", !countingDown || seconds === null);
     els.Elapsed.classList.toggle("hide", countingDown || seconds === null);
 
     const hasBar = !!(timestamps?.start && timestamps?.end);
-    els.ProgressTrack.classList.toggle("hide", !hasBar);
+    els.ProgressTrack.classList.toggle("folded", !hasBar);
 
     if (hasBar) {
       const length = timestamps.end - timestamps.start;
