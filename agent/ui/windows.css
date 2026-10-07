@@ -6,8 +6,8 @@
    switches, text boxes and icons. The colours below are Fluent's, by the
    names Microsoft gives them, in a light and a dark shade each.
 
-   The activity cards are left as the site draws them, Jost and all: they
-   show what aridan.net will show. */
+   The activity cards keep the site's layout, so they still show what
+   aridan.net will show, but are drawn as Windows' cards are. */
 
 .platform-windows {
     --win-text: light-dark(rgba(0, 0, 0, 0.896), #ffffff);
@@ -48,17 +48,12 @@
 
 /* ---------- Text ---------- */
 
-/* Segoe UI everywhere but the activity cards. site.css puts Jost on every
-   element by name, so this has to as well; :where() keeps it from
-   outranking Font Awesome's own font on its icons. */
+/* Segoe UI everywhere. site.css puts Jost on every element by name, so
+   this has to as well; :where() keeps it from outranking Font Awesome's own
+   font on its icons. */
 :where(.platform-windows) body,
 :where(.platform-windows) * {
     font-family: var(--win-font);
-}
-
-:where(.platform-windows #discord),
-:where(.platform-windows #discord) * {
-    font-family: "Jost", var(--win-font);
 }
 
 .platform-windows body {
@@ -176,13 +171,49 @@
 }
 
 /* ---------- The activity cards ----------
-   The site's glass look for them (lanyard.css), which goes with
-   style-liquid-glass when platform.js takes that off. */
+   Laid out as on the site, but drawn as Settings draws its cards on Mica:
+   a faint white layer with a hairline edge and 4px corners, and Segoe for
+   the text. */
 
 .platform-windows #discordActivity,
 .platform-windows #amLanyardDiscord {
-    background-color: var(--liquid-glass-button-background);
-    border: 1px solid var(--liquid-glass-button-border);
+    background-color: var(--win-card);
+    border: 1px solid var(--win-card-stroke);
+    border-radius: 4px;
+    color: var(--win-text);
+}
+
+.platform-windows span.titleActivity,
+.platform-windows .titleActivity h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--win-text);
+}
+
+.platform-windows #activityDetails,
+.platform-windows #amActivityDetails {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--win-text);
+}
+
+.platform-windows #activityState,
+.platform-windows #amActivityState {
+    font-size: 14px;
+    color: var(--win-text-secondary);
+}
+
+.platform-windows #ActivityTime,
+.platform-windows div#Timeremaning > p,
+.platform-windows #amTime {
+    font-family: var(--win-font);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--win-text-secondary);
+}
+
+.platform-windows #activityLogoLarge {
+    border-radius: 4px;
 }
 
 /* ---------- The footer ---------- */
@@ -202,7 +233,7 @@
 
 .platform-windows #page {
     transition:
-        opacity .167s linear,
+        opacity .083s linear,
         visibility 0s;
 }
 
@@ -212,8 +243,8 @@
     opacity: 0;
     visibility: hidden;
     transition:
-        opacity .167s linear,
-        visibility 0s linear .167s;
+        opacity .083s linear,
+        visibility 0s linear .083s;
 }
 
 .platform-windows .revealLayer {
@@ -232,7 +263,7 @@
 /* Settings fades in, and its page slides up into place - see
    .settingsPage below. */
 .platform-windows .revealLayer.revealShown {
-    animation: winFadeIn .167s linear;
+    animation: winFadeIn .083s linear;
 }
 
 /* Leaving fades out quickly, and lets clicks through to the page at once. */
@@ -257,7 +288,7 @@
 @keyframes winPageIn {
     from {
         opacity: 0;
-        transform: translateY(28px);
+        transform: translateY(16px);
     }
 
     to {
@@ -398,7 +429,7 @@
 
 /* Moving to another settings page brings it in from below. */
 .platform-windows .settingsPage {
-    animation: winPageIn .333s cubic-bezier(0, 0, 0, 1);
+    animation: winPageIn .2s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 
 .platform-windows .settingsSheet .modalSettings {
