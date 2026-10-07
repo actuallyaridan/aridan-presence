@@ -252,6 +252,7 @@
     renderHeader();
     renderMusic();
     renderOther();
+    renderNothing();
 
     if (els.settingsPanel.dataset.page === "sources") renderSources();
 
@@ -295,15 +296,8 @@
   function renderMusic() {
     const music = musicOf(status);
 
-    if (!music) {
-      els.amActivityIcon.className = MUSIC_ICON;
-      els.amActivityName.textContent = "Nothing playing";
-      els.amActivityDetails.textContent = "";
-      els.amActivityState.textContent = "";
-      els.amActivityLogoLarge.removeAttribute("src");
-      tickTimes();
-      return;
-    }
+    els.amLanyardDiscord.classList.toggle("hide", !music);
+    if (!music) return;
 
     els.amActivityIcon.className = iconFor(music.name, MUSIC_ICON);
     els.amActivityName.textContent = music.name;
@@ -319,6 +313,14 @@
     els.amActivityLogoLarge.title = music.assets?.large_text || "";
 
     tickTimes();
+  }
+
+  // With nothing shared at all, the cards make way for a line saying so.
+  function renderNothing() {
+    const nothing = !musicOf(status) && !otherOf(status);
+
+    els.discord.classList.toggle("hide", nothing);
+    els.nothingPlaying.classList.toggle("hide", !nothing);
   }
 
   function musicOf(current) {

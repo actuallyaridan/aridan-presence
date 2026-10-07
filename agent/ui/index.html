@@ -211,10 +211,13 @@
     </header>
 
     <main class="content">
+      <!-- In place of the cards while nothing is shared. -->
+      <p id="nothingPlaying" class="nothingPlaying hide">Nothing is playing</p>
+
       <!-- The site's activity cards, with its markup and IDs, so activity.css
            (copied from lanyard.css) applies to them unchanged. -->
       <div id="discord" role="group" aria-label="Activities">
-        <div id="amLanyardDiscord">
+        <div id="amLanyardDiscord" class="hide">
           <span class="titleActivity">
             <span class="activityHeading">
               <i id="amActivityIcon" class="fa-solid fa-music" aria-hidden="true"></i><h3 id="amActivityName">Nothing playing</h3>

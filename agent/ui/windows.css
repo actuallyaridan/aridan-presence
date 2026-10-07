@@ -196,19 +196,43 @@
     gap: 8px;
 }
 
+/* The app's name and icon in Windows' secondary text colour. The site
+   colours the names by id, so these have to name them too. */
+.platform-windows .titleActivity > .activityHeading > i,
+.platform-windows #amActivityName,
+.platform-windows #activityName {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--win-text-secondary);
+}
+
 .platform-windows .titleActivity > .activityHeading > i {
     font-size: 16px;
 }
 
-.platform-windows .titleActivity h3 {
-    margin-left: 0;
+/* The plain icons from Windows' own icon font, which is drawn as thin as
+   Segoe and lines up with it. Apps' logos stay Font Awesome's. */
+.platform-windows #discord :is(.fa-music, .fa-itunes-note, .fa-window-maximize, .fa-code) {
+    --fa-family: var(--win-icons);
+    --fa-style: 400;
 }
 
-.platform-windows span.titleActivity,
-.platform-windows .titleActivity h3 {
+.platform-windows #discord :is(.fa-music, .fa-itunes-note) {
+    --fa: "\EC4F";
+}
+
+.platform-windows #discord .fa-window-maximize {
+    --fa: "\ECAA";
+}
+
+.platform-windows #discord .fa-code {
+    --fa: "\E943";
+}
+
+.platform-windows .nothingPlaying {
     font-size: 14px;
-    font-weight: 600;
-    color: var(--win-text);
+    color: var(--win-text-secondary);
 }
 
 .platform-windows #activityDetails,

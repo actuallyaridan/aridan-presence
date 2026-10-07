@@ -184,6 +184,10 @@ footer {
   justify-content: center;
 }
 
+.nothingPlaying {
+  color: var(--secondary-title-color);
+}
+
 #amActivityLogoLarge:not([src]),
 #activityLogoLarge:not([src]) {
   visibility: hidden;
