@@ -34,6 +34,29 @@
     ["chrome", "Chrome"],
   ];
 
+  // Icons for the apps that have one in Font Awesome, found by the name an
+  // activity is shared under - "Microsoft Edge" has "edge" in it. Cider and
+  // Apple Music share the site's music note. Anything not listed gets its
+  // card's plain icon instead: a note for music, a window for everything
+  // else.
+  const APP_ICONS = [
+    ["apple music", "fa-brands fa-itunes-note"],
+    ["cider", "fa-brands fa-itunes-note"],
+    ["spotify", "fa-brands fa-spotify"],
+    ["firefox", "fa-brands fa-firefox-browser"],
+    ["chrome", "fa-brands fa-chrome"],
+    ["edge", "fa-brands fa-edge"],
+    ["safari", "fa-brands fa-safari"],
+    ["youtube", "fa-brands fa-youtube"],
+    ["twitch", "fa-brands fa-twitch"],
+    ["discord", "fa-brands fa-discord"],
+    ["steam", "fa-brands fa-steam"],
+    ["visual studio code", "fa-solid fa-code"],
+  ];
+
+  const MUSIC_ICON = "fa-solid fa-music";
+  const OTHER_ICON = "fa-regular fa-window-maximize";
+
   // How each source is doing, as the site's version list shows a library:
   // a badge, its colour ("current" is green, "outdated" orange, "unknown"
   // red, "pending" grey) and a line of explanation.
@@ -273,6 +296,7 @@
     const music = musicOf(status);
 
     if (!music) {
+      els.amActivityIcon.className = MUSIC_ICON;
       els.amActivityName.textContent = "Nothing playing";
       els.amActivityDetails.textContent = "";
       els.amActivityState.textContent = "";
@@ -281,6 +305,7 @@
       return;
     }
 
+    els.amActivityIcon.className = iconFor(music.name, MUSIC_ICON);
     els.amActivityName.textContent = music.name;
     els.amActivityDetails.textContent = music.details || "";
     els.amActivityState.textContent = music.state || "";
@@ -313,6 +338,7 @@
     els.discordActivity.classList.toggle("hide", !other);
     if (!other) return;
 
+    els.activityIcon.className = iconFor(other.name, OTHER_ICON);
     els.activityName.textContent = other.name;
     els.activityDetails.textContent = other.details || "";
     els.activityState.textContent = other.state || "";
@@ -327,6 +353,17 @@
     }
 
     tickTimes();
+  }
+
+  // The app's own icon if it has one in APP_ICONS, or the plain one.
+  function iconFor(name, plain) {
+    const lower = (name || "").toLowerCase();
+
+    for (const [key, icon] of APP_ICONS) {
+      if (lower.includes(key)) return icon;
+    }
+
+    return plain;
   }
 
   // Apple's covers can be asked for at any size, by changing the size in

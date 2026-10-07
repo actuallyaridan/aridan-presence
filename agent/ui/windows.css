@@ -183,6 +183,27 @@
     color: var(--win-text);
 }
 
+/* Windows spaces things in steps of 4px: 16px inside the card, and 8px
+   between the app's icon and its name. */
+.platform-windows #discordActivity,
+.platform-windows #amLanyardDiscord {
+    padding: 16px;
+}
+
+.platform-windows .titleActivity > .activityHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.platform-windows .titleActivity > .activityHeading > i {
+    font-size: 16px;
+}
+
+.platform-windows .titleActivity h3 {
+    margin-left: 0;
+}
+
 .platform-windows span.titleActivity,
 .platform-windows .titleActivity h3 {
     font-size: 14px;
