@@ -293,6 +293,20 @@ div#discord {
   user-select: text;
 }
 
+/* The icons of what is using a source, under its name in Sources. */
+.sourceIcons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--secondary-title-color);
+}
+
+.sourceIcons > i {
+  width: auto;
+  margin: 0;
+}
+
 /* The log as the site's version list, one entry per line, newest first. */
 .logTime {
   font-variant-numeric: tabular-nums;

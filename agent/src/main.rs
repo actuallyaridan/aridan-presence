@@ -1,8 +1,11 @@
 // aridan-presence: tells presence.aridan.net what I am listening to and
 // playing, so the music widget on aridan.net works without Discord open.
 //
-// It is a tray app. The work happens in engine.rs, in the background, for as
-// long as the app is open. The window (ui/) is only for looking at what it is
+// This is the Windows and macOS app; Linux has its own, made with Qt, in
+// ../qt. Both use ../core, which does the work.
+//
+// It is a tray app. The work happens in core/src/engine.rs, in the
+// background, for as long as the app is open. The window (ui/) is only for looking at what it is
 // doing and changing its settings; closing it leaves the app running in the
 // tray. Quit from the tray menu to stop it.
 
@@ -12,22 +15,16 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 // Each `mod` line pulls in the file of that name.
-mod activity;
-mod artwork;
 mod commands;
-mod config;
-mod engine;
 mod look;
-mod server;
-mod sources;
-mod state;
-mod track;
 mod tray;
 mod window;
 
-use state::Shared;
+use presence_core::config;
+use presence_core::engine;
+use presence_core::state::{OnStatus, Shared, Status};
 use std::sync::Arc;
-use tauri::{Manager, RunEvent};
+use tauri::{Emitter, Manager, RunEvent};
 use tauri_plugin_autostart::MacosLauncher;
 
 // Starting at login passes this, so the app goes straight to the tray instead
@@ -87,7 +84,15 @@ fn main() {
                 window::show(&handle);
             }
 
-            tauri::async_runtime::spawn(engine::run(handle.clone(), engine_shared));
+            // Every new status goes to the window, if it is open, and the
+            // tray.
+            let status_handle = handle.clone();
+            let on_status: OnStatus = Arc::new(move |status: &Status| {
+                let _ = status_handle.emit("status", status);
+                tray::update(&status_handle, status);
+            });
+
+            tauri::async_runtime::spawn(engine::run(engine_shared, on_status));
             tauri::async_runtime::spawn(quit_on_signal(handle));
 
             Ok(())

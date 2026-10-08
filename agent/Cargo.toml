@@ -1,38 +1,26 @@
+# The Tauri app: the window and tray on Windows and macOS. The work itself
+# is in core/; the Linux app, which uses Qt instead, is in qt/.
+
+[workspace]
+members = ["core", "qt"]
+
 [package]
 name = "aridan-presence"
 version = "0.3.0"
 edition = "2024"
 
 [dependencies]
-dirs = "7.0.0"
-reqwest = { version = "0.13.5", default-features = false, features = ["json", "query"] }
+presence-core = { path = "core" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sysinfo = "0.39.6"
 tauri = { version = "2.12.1", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2.7.0"
 tauri-plugin-single-instance = "2.5.2"
-tokio = { version = "1.53.2", features = ["rt", "macros", "time", "net", "signal", "sync", "io-util"] }
-toml = "1.1.6"
-
-# HTTPS: on Linux, rustls, which brings its own crypto. On Windows and macOS,
-# the TLS the OS already has (SChannel, and Apple's Security framework),
-# which leaves nothing to compile in C and makes the app smaller.
-[target.'cfg(target_os = "linux")'.dependencies.reqwest]
-version = "0.13.5"
-default-features = false
-features = ["rustls"]
-
-[target.'cfg(not(target_os = "linux"))'.dependencies.reqwest]
-version = "0.13.5"
-default-features = false
-features = ["native-tls"]
-
-[target.'cfg(target_os = "linux")'.dependencies]
-zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+tokio = { version = "1.53.2", features = ["rt", "signal"] }
 
 [target."cfg(windows)".dependencies]
-windows = { version = "0.62.2", features = ["Media_Control", "Foundation", "Foundation_Collections", "Win32_System_Com", "UI", "UI_ViewManagement"] }
+windows = { version = "0.62.2", features = ["UI", "UI_ViewManagement"] }
 
 [build-dependencies]
 tauri-build = { version = "2.7.1", features = [] }

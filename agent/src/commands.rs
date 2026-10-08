@@ -4,8 +4,8 @@
 // `#[tauri::command]` is what makes a function callable from the window.
 // `State<...>` is Tauri handing over the shared state that main.rs gave it.
 
-use crate::config::{self, Config};
-use crate::state::{LogLine, Shared, Status};
+use presence_core::config::{self, Config};
+use presence_core::state::{LogLine, Shared, Status};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_autostart::ManagerExt;
@@ -30,24 +30,10 @@ pub fn config_path() -> String {
     config::path().display().to_string()
 }
 
-// Writes the file first, and only hands the new settings to the engine once
-// that worked - so the app never runs with settings it could not save.
+// See Shared::save_config in core/src/state.rs.
 #[tauri::command]
 pub fn save_config(app: AppHandle, shared: State<'_, Arc<Shared>>, config: Config) -> Result<Config, String> {
-    let saved = config::save(config)?;
-
-    shared.replace_config(saved.clone());
-    shared.log("Settings saved.");
-
-    // Whatever was wrong with the old file is gone now that it has been
-    // written fresh.
-    let status = {
-        let mut status = shared.status.lock().unwrap();
-        status.config_error.clear();
-        status.set_up = saved.is_set_up();
-        status.device = saved.device_name();
-        status.clone()
-    };
+    let (saved, status) = shared.save_config(config)?;
     let _ = app.emit("status", &status);
 
     Ok(saved)

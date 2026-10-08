@@ -6,8 +6,12 @@
 #   the menu entry  ~/.local/share/applications/aridan-presence.desktop
 #   the icon        ~/.local/share/icons/hicolor/.../aridan-presence.png
 #
-# Run from the agent folder after `npx tauri build --no-bundle`. Start at
-# login is switched on from the app's own Settings tab.
+# This is the Qt version (../qt), which the desktop's theme draws. Run from
+# the agent folder after:
+#
+#   cargo build --release -p aridan-presence-qt
+#
+# Start at login is switched on from the app's Options menu or Settings.
 
 set -e
 
@@ -22,7 +26,7 @@ if pkill -TERM -x aridan-presence; then
     sleep 2
 fi
 
-install -Dm755 "$agent/target/release/aridan-presence" "$HOME/.local/bin/aridan-presence"
+install -Dm755 "$agent/target/release/aridan-presence-qt" "$HOME/.local/bin/aridan-presence"
 install -Dm644 "$here/aridan-presence.desktop" "$data/applications/aridan-presence.desktop"
 install -Dm644 "$agent/icons/32x32.png" "$data/icons/hicolor/32x32/apps/aridan-presence.png"
 install -Dm644 "$agent/icons/128x128.png" "$data/icons/hicolor/128x128/apps/aridan-presence.png"

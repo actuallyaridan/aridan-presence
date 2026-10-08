@@ -213,21 +213,27 @@
 
 /* The plain icons from Windows' own icon font, which is drawn as thin as
    Segoe and lines up with it. Apps' logos stay Font Awesome's. */
-.platform-windows #discord :is(.fa-music, .fa-itunes-note, .fa-window-maximize, .fa-code) {
+.platform-windows :is(#discord, .sourceIcons) :is(.fa-music, .fa-itunes-note, .fa-window-maximize, .fa-code) {
     --fa-family: var(--win-icons);
     --fa-style: 400;
 }
 
-.platform-windows #discord :is(.fa-music, .fa-itunes-note) {
+.platform-windows :is(#discord, .sourceIcons) :is(.fa-music, .fa-itunes-note) {
     --fa: "\EC4F";
 }
 
-.platform-windows #discord .fa-window-maximize {
+.platform-windows :is(#discord, .sourceIcons) .fa-window-maximize {
     --fa: "\ECAA";
 }
 
-.platform-windows #discord .fa-code {
+.platform-windows :is(#discord, .sourceIcons) .fa-code {
     --fa: "\E943";
+}
+
+/* The site's progress bar, filled with the accent colour picked in
+   Windows' settings instead of the site's grey. */
+.platform-windows .progress-bar {
+    background-color: var(--win-accent);
 }
 
 .platform-windows .nothingPlaying {

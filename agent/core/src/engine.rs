@@ -20,12 +20,10 @@ use crate::server::Server;
 use crate::sources::cider::Cider;
 use crate::sources::discord_ipc::DiscordIpc;
 use crate::sources::now_playing::NowPlaying;
-use crate::state::{Shared, Status};
+use crate::state::{OnStatus, Shared, Status};
 use crate::track::{Track, TrackClock};
-use crate::tray;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(3);
 
@@ -51,7 +49,10 @@ struct Reported {
     server_message: String,
 }
 
-pub async fn run(app: AppHandle, shared: Arc<Shared>) {
+// `on_status` is how the window and tray hear about changes: the engine
+// calls it with every new status. Each app passes its own - the Tauri app
+// sends the status to its web page, the Qt app to its QML.
+pub async fn run(shared: Arc<Shared>, on_status: OnStatus) {
     shared.log("Starting.");
 
     // These two outlive Settings changes: the Discord socket should not be
@@ -133,7 +134,7 @@ pub async fn run(app: AppHandle, shared: Arc<Shared>) {
             status.players = sources.now_playing.seen.clone();
             status.activities = activities;
 
-            publish(&app, &shared, status);
+            publish(&on_status, &shared, status);
         }
     }
 }
@@ -295,8 +296,8 @@ fn describe(shared: &Shared, activities: &[Activity]) {
 }
 
 // Stores the new status, and if anything in it changed, tells the window and
-// updates the tray.
-fn publish(app: &AppHandle, shared: &Shared, status: Status) {
+// the tray.
+fn publish(on_status: &OnStatus, shared: &Shared, status: Status) {
     {
         let mut current = shared.status.lock().unwrap();
 
@@ -307,8 +308,7 @@ fn publish(app: &AppHandle, shared: &Shared, status: Status) {
         *current = status.clone();
     }
 
-    let _ = app.emit("status", &status);
-    tray::update(app, &status);
+    on_status(&status);
 }
 
 #[cfg(test)]

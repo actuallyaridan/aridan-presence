@@ -106,7 +106,7 @@ impl DiscordIpc {
             app: app,
         };
 
-        tauri::async_runtime::spawn(supervise(shared.clone()));
+        tokio::spawn(supervise(shared.clone()));
 
         DiscordIpc { shared: shared }
     }
@@ -128,7 +128,7 @@ async fn supervise(shared: Shared) {
 
     // The task accepting connections while we hold the socket. Stopping it
     // closes every connection it opened too (see accept_loop).
-    let mut serving: Option<tauri::async_runtime::JoinHandle<()>> = None;
+    let mut serving: Option<tokio::task::JoinHandle<()>> = None;
     let mut reported_error = false;
 
     loop {
@@ -148,7 +148,7 @@ async fn supervise(shared: Shared) {
                 Ok(listener) => {
                     shared.app.log("Discord is closed: listening on discord-ipc-0 for game activity.");
                     *shared.mode.lock().unwrap() = "listening";
-                    serving = Some(tauri::async_runtime::spawn(accept_loop(listener, shared.clone())));
+                    serving = Some(tokio::spawn(accept_loop(listener, shared.clone())));
                     reported_error = false;
                 }
                 Err(error) => {

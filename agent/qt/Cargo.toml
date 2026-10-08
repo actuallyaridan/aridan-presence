@@ -1,0 +1,21 @@
+# The Linux app: the window and tray made with Qt, so they are drawn by the
+# desktop's own theme like any other KDE app. The work itself is in ../core.
+# Windows and macOS use the Tauri app in .. instead.
+
+[package]
+name = "aridan-presence-qt"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+presence-core = { path = "../core" }
+cxx = "1"
+cxx-qt = "0.10"
+dirs = "7.0.0"
+serde = "1.0.229"
+serde_json = "1.0.151"
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "signal", "time"] }
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+
+[build-dependencies]
+cxx-qt-build = "0.10"

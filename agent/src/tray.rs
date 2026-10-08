@@ -10,7 +10,7 @@
 //
 // Its icon turns grey while sharing is paused or nothing is set up yet.
 
-use crate::state::{Shared, Status};
+use presence_core::state::{Shared, Status};
 use crate::window;
 use std::sync::Arc;
 use tauri::image::Image;

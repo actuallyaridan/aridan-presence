@@ -57,24 +57,6 @@
   const MUSIC_ICON = "fa-solid fa-music";
   const OTHER_ICON = "fa-regular fa-window-maximize";
 
-  // How each source is doing, as the site's version list shows a library:
-  // a badge, its colour ("current" is green, "outdated" orange, "unknown"
-  // red, "pending" grey) and a line of explanation.
-  const CIDER_STATES = {
-    "no-token": ["pending", "No API token", "Without one, Cider is read through Now Playing instead."],
-    "not-running": ["pending", "Not running", "Cider is closed."],
-    "token-refused": ["unknown", "Token refused", "Cider did not accept the API token in Settings."],
-    "paused": ["pending", "Paused", "Connected. Nothing is playing."],
-    "playing": ["current", "In use", "Connected, and sharing what Cider plays."],
-  };
-
-  const DISCORD_STATES = {
-    "starting": ["pending", "Starting", "Checking whether Discord is open."],
-    "listening": ["current", "Standing in", "Discord is closed, so games and apps report here instead."],
-    "discord-open": ["pending", "Discord is open", "Games report to Discord, and the site reads them from there."],
-    "unavailable": ["unknown", "Can't listen", "Something else is listening where Discord would. See the Log."],
-  };
-
   const els = {};
   for (const el of document.querySelectorAll("[id]")) {
     els[el.id] = el;
@@ -500,35 +482,35 @@
 
     els.sourceList.replaceChildren();
 
-    const cider = CIDER_STATES[status.cider] || ["pending", status.cider, ""];
-    els.sourceList.appendChild(sourceItem("Cider", cider[0], cider[1], cider[2]));
+    let ciderProblem = "";
+    if (status.cider === "token-refused") ciderProblem = "Token refused";
+    els.sourceList.appendChild(sourceItem("Cider", "cider", ciderProblem));
 
-    const discord = DISCORD_STATES[status.discord] || ["pending", status.discord, ""];
-    els.sourceList.appendChild(sourceItem("Discord rich presence", discord[0], discord[1], discord[2]));
+    let discordProblem = "";
+    if (status.discord === "unavailable") discordProblem = "Unavailable";
+    els.sourceList.appendChild(sourceItem("Discord rich presence", "discord", discordProblem));
 
-    const players = status.players || [];
-    const playing = players.find((p) => p.allowed && p.playing);
-
-    let state = "pending";
-    let badge = "Nothing playing";
-    if (playing) {
-      state = "current";
-      badge = playing.name;
-    }
-
-    const lines = [];
-    for (const player of players) {
-      let line = player.name;
-      if (player.playing) line += ", playing";
-      if (!player.allowed) line += " - never shared";
-      lines.push(line);
-    }
-    if (!lines.length) lines.push("No players open.");
-
-    els.sourceList.appendChild(sourceItem("Now Playing", state, badge, lines.join("\n")));
+    els.sourceList.appendChild(sourceItem("Now Playing", "nowplaying", ""));
   }
 
-  function sourceItem(name, state, badge, detail) {
+  // One source, as the site's versionCheck.js builds a library's entry.
+  //
+  // "Active" when something being shared right now came from it, with the
+  // icons of what did under its name; "Idle" when nothing did. A problem
+  // that stops it working says so instead of Idle.
+  function sourceItem(name, key, problem) {
+    const using = (status.activities || []).filter((a) => a.source === key);
+
+    let state = "pending";
+    let badge = "Idle";
+    if (using.length) {
+      state = "current";
+      badge = "Active";
+    } else if (problem) {
+      state = "unknown";
+      badge = problem;
+    }
+
     const item = document.createElement("li");
     item.className = "versionItem";
     item.dataset.status = state;
@@ -548,13 +530,20 @@
 
     item.appendChild(head);
 
-    for (const line of detail.split("\n")) {
-      if (!line) continue;
+    if (using.length) {
+      const icons = document.createElement("div");
+      icons.className = "sourceIcons";
 
-      const p = document.createElement("p");
-      p.className = "versionDetail";
-      p.textContent = line;
-      item.appendChild(p);
+      for (const activity of using) {
+        const plain = activity.type === LISTENING ? MUSIC_ICON : OTHER_ICON;
+        const icon = document.createElement("i");
+        icon.className = iconFor(activity.name, plain);
+        icon.title = activity.name;
+        icon.setAttribute("aria-label", activity.name);
+        icons.appendChild(icon);
+      }
+
+      item.appendChild(icons);
     }
 
     return item;

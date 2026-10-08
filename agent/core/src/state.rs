@@ -6,10 +6,15 @@
 
 use crate::activity::{now_ms, Activity};
 use crate::config::Config;
+use crate::config;
+use crate::server::Server;
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tokio::sync::Notify;
+
+// Called with every new status - see engine::run.
+pub type OnStatus = Arc<dyn Fn(&Status) + Send + Sync>;
 
 // How many lines the Log tab keeps.
 const LOG_LINES: usize = 60;
@@ -139,5 +144,40 @@ impl Shared {
 
     pub fn log_lines(&self) -> Vec<LogLine> {
         self.log.lock().unwrap().clone()
+    }
+
+    // Saving from Settings. Writes the file first, and only hands the new
+    // settings to the engine once that worked - so the app never runs with
+    // settings it could not save. Gives back the settings as saved, and the
+    // status they make, for the window.
+    pub fn save_config(&self, wanted: Config) -> Result<(Config, Status), String> {
+        let saved = config::save(wanted)?;
+
+        self.replace_config(saved.clone());
+        self.log("Settings saved.");
+
+        // Whatever was wrong with the old file is gone now that it has been
+        // written fresh.
+        let status = {
+            let mut status = self.status.lock().unwrap();
+            status.config_error.clear();
+            status.set_up = saved.is_set_up();
+            status.device = saved.device_name();
+            status.clone()
+        };
+
+        Ok((saved, status))
+    }
+
+    // Quitting is the one time the app goes away on purpose, so it is worth
+    // the moment it takes to take this computer off the site, instead of
+    // leaving it there for the Worker's 90 seconds.
+    pub async fn clear_from_site(&self) {
+        let config = self.config();
+
+        if config.is_set_up() {
+            self.log("Quitting. Clearing this computer from the site.");
+            let _ = Server::new(&config).clear().await;
+        }
     }
 }

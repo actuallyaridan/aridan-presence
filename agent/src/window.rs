@@ -4,10 +4,8 @@
 // opening it makes a new one. A hidden window still holds a whole web page in
 // memory, which is a lot for something that sits in the tray all day.
 
-use crate::config::Config;
 use crate::look;
-use crate::server::Server;
-use crate::state::Shared;
+use presence_core::state::Shared;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, WebviewWindowBuilder};
 
@@ -38,19 +36,13 @@ pub fn show(app: &AppHandle) {
     }
 }
 
-// Takes this computer off the site, then exits. Quitting is the one time the
-// app goes away on purpose, so it is worth the moment it takes to say so.
+// Takes this computer off the site, then exits.
 pub fn quit(app: &AppHandle) {
     let app = app.clone();
     let shared = app.state::<Arc<Shared>>().inner().clone();
-    let config: Config = shared.config();
 
     tauri::async_runtime::spawn(async move {
-        if config.is_set_up() {
-            shared.log("Quitting. Clearing this computer from the site.");
-            let _ = Server::new(&config).clear().await;
-        }
-
+        shared.clear_from_site().await;
         app.exit(0);
     });
 }
