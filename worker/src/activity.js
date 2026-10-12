@@ -101,6 +101,12 @@ function cleanAssets(raw) {
   const largeImage = httpsUrl(raw.large_image);
   if (largeImage) assets.large_image = largeImage;
 
+  // Cider's animated cover, kept beside the still the agent put in
+  // large_image. Its host has no CORS and no resizing, so the site does not
+  // use it yet - but it is the only copy of the animation there is.
+  const largeImageAnimated = httpsUrl(raw.large_image_animated);
+  if (largeImageAnimated) assets.large_image_animated = largeImageAnimated;
+
   const largeText = text(raw.large_text);
   if (largeText) assets.large_text = largeText;
 

@@ -8,26 +8,42 @@
 #include <QMenu>
 #include <QSystemTrayIcon>
 
+// The menu, as Windows 7's tray menus have them - the default action, which
+// a click on the icon does too, in bold at the top:
+//
+//   Open aridan-presence
+//   ─────────────
+//   Popila - Severina          what is being shared (not clickable)
+//   ─────────────
+//   ✓ Pause Sharing
+//   Settings...
+//   ─────────────
+//   Exit
 Tray::Tray(MainWindow *window) : QObject(window), m_window(window) {
-    auto *menu = new QMenu;
+    m_menu = new QMenu;
 
-    m_now = menu->addAction("Nothing playing");
+    QAction *open = m_menu->addAction("&Open aridan-presence", window, &MainWindow::showAndRaise);
+    m_menu->setDefaultAction(open);
+
+    m_menu->addSeparator();
+
+    m_now = m_menu->addAction("Nothing playing");
     m_now->setEnabled(false);
 
-    menu->addSeparator();
+    m_menu->addSeparator();
 
-    m_pause = menu->addAction("Pause sharing");
+    m_pause = m_menu->addAction("&Pause Sharing");
     m_pause->setCheckable(true);
     connect(m_pause, &QAction::triggered, this, [](bool checked) {
         Presence::instance()->setPaused(checked);
     });
 
-    menu->addAction("Open aridan-presence", window, &MainWindow::showAndRaise);
-    menu->addSeparator();
-    menu->addAction("Quit", this, [] { Presence::instance()->quit(); });
+    m_menu->addAction("&Settings...", window, [window] { window->openSettings(); });
+    m_menu->addSeparator();
+    m_menu->addAction("E&xit", this, [] { Presence::instance()->quit(); });
 
     m_icon = new QSystemTrayIcon(this);
-    m_icon->setContextMenu(menu);
+    m_icon->setContextMenu(m_menu);
 
     // A plain click opens the window; right-click shows the menu.
     connect(m_icon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
@@ -40,16 +56,23 @@ Tray::Tray(MainWindow *window) : QObject(window), m_window(window) {
     m_icon->show();
 }
 
+Tray::~Tray() {
+    delete m_menu;
+}
+
 void Tray::render() {
     const QJsonObject status = Presence::instance()->status();
     const QString line = Texts::trayLine(status);
+    const bool setUp = status.value("set_up").toBool();
+    const bool paused = status.value("paused").toBool();
 
     m_now->setText(line);
     m_icon->setToolTip("aridan-presence\n" + line);
-    m_pause->setChecked(status.value("paused").toBool());
+    m_pause->setChecked(paused);
+    m_pause->setEnabled(setUp);
 
-    const bool sharing = status.value("set_up").toBool() && !status.value("paused").toBool();
-    if (sharing) {
+    // Grey while nothing is being shared.
+    if (setUp && !paused) {
         m_icon->setIcon(QIcon(":/icons/tray.png"));
     } else {
         m_icon->setIcon(QIcon(":/icons/tray-paused.png"));

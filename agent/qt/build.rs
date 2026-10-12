@@ -27,7 +27,6 @@ fn main() {
             "icons/tray.png",
             "icons/tray-paused.png",
             "icons/icon.png",
-            "images/background.jpg",
         ])
         .qt_module("Gui")
         .qt_module("Widgets")

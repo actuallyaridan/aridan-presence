@@ -47,12 +47,18 @@ pub async fn claim() -> Instance {
 async fn try_claim() -> zbus::Result<Instance> {
     let connection = connection::Builder::session()?.serve_at(PATH, Service)?.build().await?;
 
+    // zbus gives back a taken name as an error, NameTaken, rather than as a
+    // reply - that means another copy has it.
     let reply = connection
         .request_name_with_flags(NAME, RequestNameFlags::DoNotQueue.into())
-        .await?;
+        .await;
 
-    if reply == RequestNameReply::PrimaryOwner || reply == RequestNameReply::AlreadyOwner {
-        return Ok(Instance::First(connection));
+    match reply {
+        Ok(RequestNameReply::PrimaryOwner | RequestNameReply::AlreadyOwner) => {
+            return Ok(Instance::First(connection));
+        }
+        Ok(_) | Err(zbus::Error::NameTaken) => {}
+        Err(error) => return Err(error),
     }
 
     connection

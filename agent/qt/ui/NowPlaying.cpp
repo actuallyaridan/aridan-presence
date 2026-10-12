@@ -1,54 +1,61 @@
 #include "NowPlaying.h"
+#include "IconHelper.h"
 #include "Texts.h"
 
-#include <QDateTime>
-#include <QLinearGradient>
+#include <QApplication>
+#include <QCommandLinkButton>
+#include <QEvent>
+#include <QFrame>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QProgressBar>
+#include <QStackedWidget>
 #include <QTimer>
+#include <QVBoxLayout>
 
 namespace {
 
-constexpr int kSquare = 200;
+// The cover's square, and the icon on it while there is no cover.
+constexpr int kPicture = 220;
+constexpr int kPictureIcon = 128;
 
-// Where the bottom part starts: the progress line, then the capsule.
-constexpr int kProgressFromBottom = 62;
-constexpr int kCapsuleHeight = 40;
-constexpr int kCapsuleFromBottom = 12;
+// How fine the progress bar's steps are.
+constexpr int kProgressSteps = 1000;
 
-const QColor kText(255, 255, 255);
-const QColor kDimText(255, 255, 255, 165);
-
-// How far in, and how long, in milliseconds. -1 where not known.
-struct Times {
-    qint64 elapsed = -1;
-    qint64 length = -1;
-    qint64 remaining = -1;
-};
-
-Times timesOf(const QJsonObject &activity) {
-    const QJsonObject times = activity.value("timestamps").toObject();
-    const qint64 start = times.value("start").toInteger();
-    const qint64 end = times.value("end").toInteger();
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-
-    Times out;
-    if (start > 0 && end > start) {
-        out.length = end - start;
-        out.elapsed = qBound<qint64>(0, now - start, out.length);
-    } else if (end > 0) {
-        out.remaining = qMax<qint64>(0, end - now);
-    } else if (start > 0) {
-        out.elapsed = qMax<qint64>(0, now - start);
-    }
-    return out;
+// Words never come in as markup: a song called "<b>" says "<b>".
+QLabel *plainLabel(const QString &text = QString()) {
+    auto *label = new QLabel(text);
+    label->setTextFormat(Qt::PlainText);
+    return label;
 }
 
-QFont sized(QFont font, qreal factor, bool bold = false) {
-    font.setPointSizeF(font.pointSizeF() * factor);
+// Greyed the way the theme greys a hint in an empty field, which is softer
+// than disabled text and follows light and dark.
+QLabel *dimLabel(const QString &text = QString()) {
+    auto *label = plainLabel(text);
+    label->setForegroundRole(QPalette::PlaceholderText);
+    return label;
+}
+
+// The window's own font, larger and/or bold - Windows 7's "main
+// instruction" and the lines under it.
+QFont scaled(const QFont &base, qreal factor, bool bold = false) {
+    QFont font = base;
+    font.setPointSizeF(base.pointSizeF() * factor);
     font.setBold(bold);
     return font;
+}
+
+QPixmap iconPixmap(const QIcon &icon, int size, const QWidget *widget) {
+    return icon.pixmap(QSize(size, size), widget->devicePixelRatioF());
+}
+
+void setText(QLabel *label, const QString &text) {
+    label->setText(text);
+    label->setVisible(!text.isEmpty());
 }
 
 } // namespace
@@ -56,27 +63,292 @@ QFont sized(QFont font, qreal factor, bool bold = false) {
 NowPlaying::NowPlaying(QWidget *parent) : QWidget(parent) {
     m_network = new QNetworkAccessManager(this);
 
-    // The clocks and the line move every second, between status updates.
+    m_pages = new QStackedWidget;
+    m_setUpPage = buildSetUpPage();
+    m_nothingPage = buildNothingPage();
+    m_activityPage = buildActivityPage();
+    m_pages->addWidget(m_setUpPage);
+    m_pages->addWidget(m_nothingPage);
+    m_pages->addWidget(m_activityPage);
+
+    auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(m_pages);
+
     auto *ticker = new QTimer(this);
-    connect(ticker, &QTimer::timeout, this, qOverload<>(&QWidget::update));
+    connect(ticker, &QTimer::timeout, this, &NowPlaying::tick);
     ticker->start(1000);
+
+    applyLook();
+    setActivities(QJsonObject(), QJsonObject());
 }
 
-void NowPlaying::setActivities(const QJsonObject &main, const QJsonObject &corner) {
+QWidget *NowPlaying::buildSetUpPage() {
+    auto *page = new QWidget;
+
+    auto *icon = new QLabel;
+    icon->setPixmap(iconPixmap(appIcon(), 64, this));
+
+    auto *title = plainLabel("Set up aridan-presence");
+    title->setObjectName("mainInstruction");
+
+    auto *text = plainLabel("Add the server token in Settings to start sharing what you're "
+                            "listening to and playing with aridan.net.");
+    text->setWordWrap(true);
+
+    // With the style's own command link arrow.
+    auto *link = new QCommandLinkButton("Open Settings", "Connections > Server > Token");
+    connect(link, &QCommandLinkButton::clicked, this, &NowPlaying::settingsRequested);
+
+    for (QLabel *label : {title, text}) label->setAlignment(Qt::AlignHCenter);
+
+    auto *layout = new QVBoxLayout(page);
+    layout->setSpacing(8);
+    layout->addStretch();
+    layout->addWidget(icon, 0, Qt::AlignHCenter);
+    layout->addSpacing(4);
+    layout->addWidget(title);
+    layout->addWidget(text);
+    layout->addSpacing(8);
+    layout->addWidget(link);
+    layout->addStretch(2);
+    return page;
+}
+
+QWidget *NowPlaying::buildNothingPage() {
+    auto *page = new QWidget;
+
+    auto *icon = new QLabel;
+    const QIcon note = themeIcon({"audio-x-generic", "multimedia-audio-player", "media-optical-audio"});
+    icon->setPixmap(note.pixmap(QSize(48, 48), devicePixelRatioF(), QIcon::Disabled));
+    icon->setAlignment(Qt::AlignCenter);
+
+    auto *text = dimLabel("Nothing is playing");
+    text->setObjectName("nothing");
+    text->setAlignment(Qt::AlignCenter);
+
+    auto *layout = new QVBoxLayout(page);
+    layout->addStretch();
+    layout->addWidget(icon);
+    layout->addSpacing(4);
+    layout->addWidget(text);
+    layout->addStretch();
+    return page;
+}
+
+QWidget *NowPlaying::buildActivityPage() {
+    auto *page = new QWidget;
+
+    m_picture = new QLabel;
+    m_picture->setFixedSize(kPicture, kPicture);
+    m_picture->setAlignment(Qt::AlignCenter);
+
+    // Which app it is playing in, under the album: "Spotify"
+    m_heading = dimLabel();
+
+    // The song, who it is by, and the album - or a game, what is going on
+    // in it, and where.
+    m_title = plainLabel();
+    m_title->setObjectName("title");
+    m_title->setWordWrap(true);
+    m_title->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
+    m_subtitle = plainLabel();
+    m_subtitle->setObjectName("subtitle");
+    m_subtitle->setWordWrap(true);
+    m_subtitle->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
+    m_third = dimLabel();
+    m_third->setWordWrap(true);
+    m_third->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
+    // 01:12 [=====------] -02:31
+    m_elapsed = plainLabel();
+    m_progress = new QProgressBar;
+    m_progress->setRange(0, kProgressSteps);
+    m_progress->setTextVisible(false);
+
+    // Slimmer than a file copy's bar, which is what the theme's full height
+    // looks like.
+    m_progress->setFixedHeight(12);
+    m_left = plainLabel();
+
+    auto *progressRow = new QHBoxLayout;
+    progressRow->setSpacing(8);
+    progressRow->addWidget(m_elapsed);
+    progressRow->addWidget(m_progress, 1);
+    progressRow->addWidget(m_left);
+
+    // Centred under the cover, wrapping onto a second line rather than
+    // being cut off.
+    for (QLabel *label : {m_title, m_subtitle, m_third, m_heading}) {
+        label->setAlignment(Qt::AlignHCenter);
+        label->setWordWrap(true);
+    }
+
+    auto *words = new QVBoxLayout;
+    words->setSpacing(2);
+    words->addWidget(m_title);
+    words->addWidget(m_subtitle);
+    words->addWidget(m_third);
+    words->addWidget(m_heading);
+
+    // The cover, the words and the bar, one under the other.
+    auto *top = new QVBoxLayout;
+    top->setSpacing(14);
+    top->addWidget(m_picture, 0, Qt::AlignHCenter);
+    top->addLayout(words);
+    top->addLayout(progressRow);
+
+    // The line underneath: a game alongside the music, say.
+    m_otherRow = new QWidget;
+
+    auto *line = new QFrame;
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Sunken);
+
+    m_otherIcon = new QLabel;
+    m_otherName = plainLabel();
+    m_otherName->setObjectName("otherName");
+    m_otherLine = dimLabel();
+
+    auto *otherWords = new QVBoxLayout;
+    otherWords->setSpacing(0);
+    otherWords->addWidget(m_otherName);
+    otherWords->addWidget(m_otherLine);
+
+    auto *otherInner = new QHBoxLayout;
+    otherInner->setSpacing(10);
+    otherInner->addWidget(m_otherIcon);
+    otherInner->addLayout(otherWords, 1);
+
+    auto *otherLayout = new QVBoxLayout(m_otherRow);
+    otherLayout->setContentsMargins(0, 0, 0, 0);
+    otherLayout->setSpacing(10);
+    otherLayout->addWidget(line);
+    otherLayout->addLayout(otherInner);
+
+    // In the middle of the pane, with the line underneath at its bottom.
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(12);
+    layout->addStretch();
+    layout->addLayout(top);
+    layout->addStretch();
+    layout->addWidget(m_otherRow);
+    return page;
+}
+
+void NowPlaying::setSetUp(bool setUp) {
+    if (setUp == m_setUp) return;
+    m_setUp = setUp;
+    setActivities(m_main, m_other);
+}
+
+void NowPlaying::setActivities(const QJsonObject &main, const QJsonObject &other) {
     m_main = main;
-    m_corner = corner;
-    m_music = main.value("type").toInt() == Texts::Listening;
+    m_other = other;
 
-    const QJsonObject assets = main.value("assets").toObject();
-    loadPicture(assets.value("large_image").toString());
+    if (!m_setUp) {
+        m_pages->setCurrentWidget(m_setUpPage);
+    } else if (main.isEmpty()) {
+        m_pages->setCurrentWidget(m_nothingPage);
+    } else {
+        m_pages->setCurrentWidget(m_activityPage);
+    }
 
-    update();
+    const QString picture = main.value("assets").toObject().value("large_image").toString();
+    loadPicture(Texts::coverUrl(picture, 600));
+
+    renderMain();
+    renderOther();
+    renderPicture();
+    tick();
+}
+
+void NowPlaying::renderMain() {
+    if (m_main.isEmpty()) return;
+
+    const QString name = m_main.value("name").toString();
+    const bool music = m_main.value("type").toInt() == Texts::Listening;
+
+    // A game's name is already its title.
+    setText(m_heading, music ? name : QString());
+
+    // A song's name is its title; a game's own name is, with what is going
+    // on in it under that.
+    QString title;
+    QString subtitle;
+    QString third;
+    if (music) {
+        title = m_main.value("details").toString();
+        subtitle = m_main.value("state").toString();
+        third = m_main.value("assets").toObject().value("large_text").toString();
+    } else {
+        title = name;
+        subtitle = m_main.value("details").toString();
+        third = m_main.value("state").toString();
+    }
+    if (title.isEmpty()) title = name;
+
+    // The album is often the song's name again, for a single.
+    if (third == title) third.clear();
+
+    setText(m_title, title);
+    setText(m_subtitle, subtitle);
+    setText(m_third, third);
+}
+
+void NowPlaying::renderOther() {
+    m_otherRow->setVisible(!m_other.isEmpty());
+    if (m_other.isEmpty()) return;
+
+    const QString name = m_other.value("name").toString();
+    const bool music = m_other.value("type").toInt() == Texts::Listening;
+
+    m_otherIcon->setPixmap(iconPixmap(Texts::iconFor(name, music), 32, this));
+    m_otherName->setText(Texts::heading(m_other.value("type").toInt()) + " " + name);
+}
+
+// The cover with a thin frame round it, or until there is one - or for an
+// app that has none - the app's icon on a plain tile.
+void NowPlaying::renderPicture() {
+    const qreal ratio = devicePixelRatioF();
+    QPixmap canvas(QSize(kPicture, kPicture) * ratio);
+    canvas.setDevicePixelRatio(ratio);
+    canvas.fill(Qt::transparent);
+
+    QPainter painter(&canvas);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+    QRectF frame;
+    if (!m_cover.isNull()) {
+        const QSize fitted = m_cover.size().scaled(kPicture, kPicture, Qt::KeepAspectRatio);
+        frame = QRectF((kPicture - fitted.width()) / 2.0, (kPicture - fitted.height()) / 2.0, fitted.width(),
+                       fitted.height());
+        painter.drawPixmap(frame, m_cover, m_cover.rect());
+    } else {
+        frame = QRectF(0, 0, kPicture, kPicture);
+        painter.fillRect(frame, palette().color(QPalette::AlternateBase));
+
+        const QString name = m_main.value("name").toString();
+        const bool music = m_main.value("type").toInt() == Texts::Listening;
+        const QRect middle((kPicture - kPictureIcon) / 2, (kPicture - kPictureIcon) / 2, kPictureIcon, kPictureIcon);
+        Texts::iconFor(name, music).paint(&painter, middle);
+    }
+
+    painter.setPen(palette().color(QPalette::Mid));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(frame.adjusted(0.5, 0.5, -0.5, -0.5));
+    painter.end();
+
+    m_picture->setPixmap(canvas);
 }
 
 void NowPlaying::loadPicture(const QString &url) {
-    if (url == m_pictureUrl) return;
-    m_pictureUrl = url;
-    m_picture = QPixmap();
+    if (url == m_coverUrl) return;
+    m_coverUrl = url;
+    m_cover = QPixmap();
 
     if (url.isEmpty()) return;
 
@@ -86,216 +358,89 @@ void NowPlaying::loadPicture(const QString &url) {
         reply->deleteLater();
 
         // Another picture was asked for in the meantime.
-        if (url != m_pictureUrl) return;
+        if (url != m_coverUrl) return;
 
         QPixmap pixmap;
         if (reply->error() == QNetworkReply::NoError && pixmap.loadFromData(reply->readAll())) {
-            m_picture = pixmap;
-            update();
+            m_cover = pixmap;
+            renderPicture();
         }
     });
 }
 
-void NowPlaying::paintEvent(QPaintEvent *) {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+void NowPlaying::tick() {
+    // The main activity: a bar while there is a start and an end, and only
+    // a clock without.
+    if (!m_main.isEmpty()) {
+        const Texts::Times times = Texts::timesOf(m_main);
 
-    // The backdrop, scaled to cover the view and cropped to fit, so it is
-    // never stretched out of shape.
-    static const QPixmap backdrop(":/images/background.jpg");
-    const QSize covering = backdrop.size().scaled(size(), Qt::KeepAspectRatioByExpanding);
-    painter.drawPixmap(QRect(QPoint((width() - covering.width()) / 2, (height() - covering.height()) / 2),
-                             covering),
-                       backdrop);
+        const bool bar = times.length > 0;
+        m_progress->setVisible(bar);
+        m_elapsed->setVisible(times.elapsed >= 0);
+        m_left->setVisible(bar || times.remaining >= 0);
 
-    // Nothing to show: just the backdrop. The status bar says so.
-    if (m_main.isEmpty()) return;
+        if (bar) {
+            m_progress->setValue(int(times.elapsed * kProgressSteps / times.length));
+            m_elapsed->setText(Texts::clock(times.elapsed));
+            m_left->setText("-" + Texts::clock(times.length - times.elapsed));
+        } else {
+            m_elapsed->setText(Texts::clock(times.elapsed) + " elapsed");
+            m_left->setText(Texts::clock(times.remaining) + " left");
+        }
+    }
 
-    // The square sits in the middle of what is above the bottom part.
-    const int above = height() - kProgressFromBottom;
-    const QRect square((width() - kSquare) / 2, (above - kSquare) / 2, kSquare, kSquare);
+    // The line underneath: what is going on in it, and its clock.
+    if (!m_other.isEmpty()) {
+        QStringList parts;
 
-    paintPicture(painter, square);
-    paintProgress(painter);
-    paintCapsule(painter);
-    paintTopLeft(painter);
-    paintCorner(painter);
+        const QString details = m_other.value("details").toString();
+        if (!details.isEmpty()) parts << details;
+
+        const QString state = m_other.value("state").toString();
+        if (!state.isEmpty()) parts << state;
+
+        const Texts::Times times = Texts::timesOf(m_other);
+        if (times.remaining >= 0) {
+            parts << Texts::clock(times.remaining) + " left";
+        } else if (times.elapsed >= 0) {
+            parts << Texts::clock(times.elapsed) + " elapsed";
+        }
+
+        setText(m_otherLine, parts.join(QStringLiteral(" · ")));
+    }
 }
 
-// The cover, or while there is none, a pane of frosted glass with the
-// app's icon on it, as Media Player shows its music note.
-void NowPlaying::paintPicture(QPainter &painter, const QRect &square) {
-    if (!m_picture.isNull()) {
-        const QSize fitted = m_picture.size().scaled(square.size(), Qt::KeepAspectRatio);
-        const QRect target(square.center().x() - fitted.width() / 2 + 1,
-                           square.center().y() - fitted.height() / 2 + 1, fitted.width(), fitted.height());
-        painter.drawPixmap(target, m_picture);
+// Sizes follow the window's font, and the tile and frame its colours, so
+// both are worked out again when the theme changes.
+void NowPlaying::changeEvent(QEvent *event) {
+    QWidget::changeEvent(event);
 
-        painter.setPen(QColor(255, 255, 255, 70));
-        painter.setBrush(Qt::NoBrush);
-        painter.drawRect(QRectF(target).adjusted(0.5, 0.5, -0.5, -0.5));
+    switch (event->type()) {
+    case QEvent::FontChange:
+    case QEvent::PaletteChange:
+    case QEvent::StyleChange:
+        break;
+    default:
         return;
     }
 
-    QLinearGradient frost(square.topLeft(), square.bottomRight());
-    frost.setColorAt(0.0, QColor(255, 255, 255, 60));
-    frost.setColorAt(1.0, QColor(255, 255, 255, 18));
-
-    painter.setPen(QColor(255, 255, 255, 90));
-    painter.setBrush(frost);
-    painter.drawRect(QRectF(square).adjusted(0.5, 0.5, -0.5, -0.5));
-
-    const QIcon icon = Texts::iconFor(m_main.value("name").toString(), m_music);
-    const int size = kSquare / 2;
-    icon.paint(&painter, QRect(square.center().x() - size / 2 + 1, square.center().y() - size / 2 + 1, size, size));
+    applyLook();
 }
 
-// Media Player's seek line: a dark groove across the window with a blue,
-// glowing fill for how far in the song is.
-void NowPlaying::paintProgress(QPainter &painter) {
-    const Times times = timesOf(m_main);
-    if (times.length <= 0) return;
-
-    const QRectF groove(10.5, height() - kProgressFromBottom + 0.5, width() - 21, 4);
-
-    painter.setPen(QColor(255, 255, 255, 45));
-    painter.setBrush(QColor(0, 0, 0, 150));
-    painter.drawRoundedRect(groove, 2, 2);
-
-    const qreal fraction = qreal(times.elapsed) / qreal(times.length);
-    QRectF fill = groove.adjusted(1, 1, -1, -1);
-    fill.setWidth(fill.width() * fraction);
-
-    QLinearGradient blue(fill.topLeft(), fill.bottomLeft());
-    blue.setColorAt(0.0, QColor("#8FD3FF"));
-    blue.setColorAt(1.0, QColor("#1C7FD6"));
-
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(blue);
-    painter.drawRect(fill);
-}
-
-// The capsule Media Player keeps its buttons in, here see-through and
-// holding the name and who it is by, with the clocks either side of it.
-void NowPlaying::paintCapsule(QPainter &painter) {
-    QString title = m_main.value("details").toString();
-    QString subtitle = m_main.value("state").toString();
-
-    // A game's own name is its title, with what is going on under it.
-    if (!m_music) {
-        subtitle = title.isEmpty() ? subtitle : title;
-        title = m_main.value("name").toString();
+void NowPlaying::applyLook() {
+    for (QLabel *label : findChildren<QLabel *>("mainInstruction")) {
+        label->setFont(scaled(font(), 1.5));
     }
-    if (title.isEmpty()) title = m_main.value("name").toString();
-
-    const QFont titleFont = sized(font(), 1.0, true);
-    const QFont subtitleFont = sized(font(), 0.9);
-    const QFontMetrics titleMetrics(titleFont);
-    const QFontMetrics subtitleMetrics(subtitleFont);
-
-    const int widest = qMax(titleMetrics.horizontalAdvance(title), subtitleMetrics.horizontalAdvance(subtitle));
-    const int capsuleWidth = qBound(240, widest + 56, width() - 170);
-
-    const QRectF capsule((width() - capsuleWidth) / 2.0 + 0.5,
-                         height() - kCapsuleFromBottom - kCapsuleHeight + 0.5,
-                         capsuleWidth - 1, kCapsuleHeight - 1);
-    const qreal radius = kCapsuleHeight / 2.0;
-
-    // Plain and see-through, so the backdrop shows through it.
-    painter.setPen(QColor(255, 255, 255, 40));
-    painter.setBrush(QColor(120, 128, 138, 90));
-    painter.drawRoundedRect(capsule, radius, radius);
-
-    // The words, elided where the capsule is not wide enough.
-    const QRectF inside = capsule.adjusted(22, 3, -22, -3);
-
-    if (subtitle.isEmpty()) {
-        painter.setFont(titleFont);
-        painter.setPen(kText);
-        painter.drawText(inside, Qt::AlignCenter, titleMetrics.elidedText(title, Qt::ElideRight, int(inside.width())));
-    } else {
-        const QRectF top(inside.left(), inside.top(), inside.width(), inside.height() / 2);
-        const QRectF bottom(inside.left(), inside.center().y(), inside.width(), inside.height() / 2);
-
-        painter.setFont(titleFont);
-        painter.setPen(kText);
-        painter.drawText(top, Qt::AlignHCenter | Qt::AlignBottom,
-                         titleMetrics.elidedText(title, Qt::ElideRight, int(inside.width())));
-
-        painter.setFont(subtitleFont);
-        painter.setPen(kDimText);
-        painter.drawText(bottom, Qt::AlignHCenter | Qt::AlignTop,
-                         subtitleMetrics.elidedText(subtitle, Qt::ElideRight, int(inside.width())));
+    for (QLabel *label : findChildren<QLabel *>("title")) {
+        label->setFont(scaled(font(), 1.35, true));
     }
-
-    // How far in on the left, as Media Player has it; how long, or how long
-    // is left, on the right.
-    const Times times = timesOf(m_main);
-    painter.setFont(font());
-    painter.setPen(kText);
-
-    const QRectF left(0, capsule.top(), capsule.left() - 14, capsule.height());
-    const QRectF right(capsule.right() + 14, capsule.top(), width() - capsule.right() - 14, capsule.height());
-
-    if (times.elapsed >= 0) {
-        painter.drawText(left, Qt::AlignRight | Qt::AlignVCenter, Texts::clock(times.elapsed));
+    for (QLabel *label : findChildren<QLabel *>("subtitle")) {
+        label->setFont(scaled(font(), 1.15));
     }
-    if (times.length > 0) {
-        painter.drawText(right, Qt::AlignLeft | Qt::AlignVCenter, Texts::clock(times.length));
-    } else if (times.remaining >= 0) {
-        painter.drawText(right, Qt::AlignLeft | Qt::AlignVCenter, "-" + Texts::clock(times.remaining));
+    for (QLabel *label : findChildren<QLabel *>("nothing")) {
+        label->setFont(scaled(font(), 1.25));
     }
-}
+    m_otherName->setFont(scaled(font(), 1.0, true));
 
-// Which app the music is from, where Media Player writes the song's name.
-void NowPlaying::paintTopLeft(QPainter &painter) {
-    if (!m_music) return;
-
-    const QString name = m_main.value("name").toString();
-    const QIcon icon = Texts::iconFor(name, true);
-
-    icon.paint(&painter, QRect(10, 9, 16, 16));
-
-    painter.setFont(font());
-    painter.setPen(kText);
-    painter.drawText(QRect(32, 8, width() / 2, 18), Qt::AlignLeft | Qt::AlignVCenter, name);
-}
-
-// Anything else going on - a game alongside the music - small, in the top
-// right corner: its icon, what it is, and its clock.
-void NowPlaying::paintCorner(QPainter &painter) {
-    if (m_corner.isEmpty()) return;
-
-    const QString name = m_corner.value("name").toString();
-    QString line = name;
-
-    const QString details = m_corner.value("details").toString();
-    if (!details.isEmpty()) line += " - " + details;
-
-    const Times times = timesOf(m_corner);
-    QString clock;
-    if (times.remaining >= 0) {
-        clock = Texts::clock(times.remaining) + " left";
-    } else if (times.elapsed >= 0) {
-        clock = Texts::clock(times.elapsed);
-    }
-
-    const QFontMetrics metrics(font());
-    const int maxWidth = width() / 2 - 40;
-    line = metrics.elidedText(line, Qt::ElideRight, maxWidth);
-
-    painter.setFont(font());
-
-    const int lineWidth = metrics.horizontalAdvance(line);
-    const QRect lineRect(width() - 10 - lineWidth, 8, lineWidth, 18);
-    painter.setPen(kText);
-    painter.drawText(lineRect, Qt::AlignRight | Qt::AlignVCenter, line);
-
-    Texts::iconFor(name, false).paint(&painter, QRect(lineRect.left() - 22, 9, 16, 16));
-
-    if (!clock.isEmpty()) {
-        painter.setPen(kDimText);
-        painter.drawText(QRect(width() - 10 - maxWidth, 26, maxWidth, 16), Qt::AlignRight | Qt::AlignVCenter, clock);
-    }
+    renderPicture();
 }

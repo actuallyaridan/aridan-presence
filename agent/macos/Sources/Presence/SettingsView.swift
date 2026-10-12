@@ -187,9 +187,6 @@ private struct GeneralSettings: View {
                 }
             } header: {
                 Text("Apps that may be shared")
-            } footer: {
-                Text("Anything else playing – a video call, a training video – is never shared.")
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

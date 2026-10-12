@@ -17,6 +17,20 @@ test("drops unknown fields, bad images and bad timestamps", () => {
   assert.deepEqual(a.assets, { large_text: "Album", small_image: "https://ok/b.png" });
 });
 
+test("keeps the animated cover beside the still", () => {
+  const [a] = cleanActivities([{
+    type: 2, name: "Apple Music", source: "discord",
+    assets: {
+      large_image: "https://is1-ssl.mzstatic.com/image/thumb/a/600x600bb.jpg",
+      large_image_animated: "https://exp-rise.cider.sh/api/v1/artwork/generate/abc.webp",
+    },
+  }]);
+  assert.equal(a.assets.large_image_animated, "https://exp-rise.cider.sh/api/v1/artwork/generate/abc.webp");
+
+  const [b] = cleanActivities([{ type: 2, name: "x", assets: { large_image_animated: "http://insecure/a.webp" } }]);
+  assert.equal(b.assets, undefined);
+});
+
 test("rejects non-arrays and nameless activities", () => {
   assert.equal(cleanActivities("nope"), null);
   assert.deepEqual(cleanActivities([{ type: 0 }, null, 5]), []);

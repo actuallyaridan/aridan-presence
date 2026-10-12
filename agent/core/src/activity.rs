@@ -65,6 +65,12 @@ pub struct Assets {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub large_image: Option<String>,
 
+    // Cider's animated cover, when large_image was swapped for a still - see
+    // Artwork::still_for(). Lanyard has no such field, so the site can ignore
+    // it and everything still works.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub large_image_animated: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub large_text: Option<String>,
 

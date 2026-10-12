@@ -30,21 +30,36 @@ QIcon iconFor(const QString &name, bool music);
 // 02:11, or 1:02:11 past an hour - clock() in the site's lanyard.js.
 QString clock(qint64 milliseconds);
 
-// Whether this computer is on the site, and an icon to match.
-struct Sharing {
-    QString text;
-    QIcon icon;
+// How far in, and how long, in milliseconds, as of now. -1 where not
+// known: a song has both, a game only how long it has been going, and a
+// timer only how long is left.
+struct Times {
+    qint64 elapsed = -1;
+    qint64 length = -1;
+    qint64 remaining = -1;
 };
-Sharing sharing(const QJsonObject &status);
+Times timesOf(const QJsonObject &activity);
+
+// Apple's covers can be asked for at any size, by changing the size in the
+// address - artwork() in the site's lanyardClient.js. Anything else is
+// given back as it is.
+QString coverUrl(const QString &url, int size);
+
+// Whether this computer is on the site.
+QString sharing(const QJsonObject &status);
 
 // The first line of the tray menu, and its tooltip.
 QString trayLine(const QJsonObject &status);
 
-// One app that may or may not be shared, for Settings.
+// One app that may or may not be shared, for Settings. `shown` is false
+// for a known player that is not on this computer and is not playing -
+// Safari, say. Settings leaves those out, as the macOS app does, and they
+// keep their setting.
 struct Player {
     QString key;
     QString name;
     bool allowed;
+    bool shown;
 };
 QList<Player> playerList(const QJsonObject &config, const QJsonObject &status);
 

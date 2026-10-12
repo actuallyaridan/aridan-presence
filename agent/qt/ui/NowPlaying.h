@@ -1,21 +1,27 @@
 #pragma once
 
-// The middle of the window, after Windows Media Player 12's Now Playing
-// view: its dark blue backdrop, the album art in a framed square in the
-// middle, a thin blue progress line across the bottom, and under it -
-// where Media Player has its controls - a dark capsule with the song's
-// name and artist, between how far in it is and how long it is.
+// The middle of the window, made of Qt's own widgets so the desktop's theme
+// draws it - Aero on a Windows 7 look, Breeze on a plain KDE, whatever else
+// elsewhere. Only the thin frame round the cover is drawn here.
 //
-// One activity takes the middle: the music, or if there is none the game
-// or app. Anything else - a game alongside the music - sits small in the
-// top right corner. Media Player drew this view itself rather than out of
-// standard controls, and so does this.
+// It shows one of three pages:
+//
+//   Set up        first start, before there is a token: what to do, and a
+//                 command link to Settings
+//   Nothing       a line saying nothing is playing
+//   Activity      the cover on top, under it what is playing, who by, and
+//                 a progress bar between how far in it is and how long is
+//                 left. Anything else going on - a game alongside the
+//                 music - gets a line of its own at the bottom.
 
 #include <QJsonObject>
 #include <QPixmap>
 #include <QWidget>
 
+class QLabel;
 class QNetworkAccessManager;
+class QProgressBar;
+class QStackedWidget;
 
 class NowPlaying : public QWidget {
     Q_OBJECT
@@ -23,29 +29,63 @@ class NowPlaying : public QWidget {
 public:
     explicit NowPlaying(QWidget *parent = nullptr);
 
-    // `main` takes the middle; `corner` the top right. Either may be empty.
-    void setActivities(const QJsonObject &main, const QJsonObject &corner);
+    // `main` takes the middle; `other` the line underneath. Either may be
+    // empty, and with both empty it says nothing is playing.
+    void setActivities(const QJsonObject &main, const QJsonObject &other);
+
+    void setSetUp(bool setUp);
+
+signals:
+    void settingsRequested();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private:
+    QWidget *buildSetUpPage();
+    QWidget *buildNothingPage();
+    QWidget *buildActivityPage();
+
+    // The larger fonts, and the cover's tile and frame, from the theme.
+    void applyLook();
+
     void loadPicture(const QString &url);
+    void renderPicture();
+    void renderMain();
+    void renderOther();
 
-    void paintPicture(QPainter &painter, const QRect &square);
-    void paintProgress(QPainter &painter);
-    void paintCapsule(QPainter &painter);
-    void paintTopLeft(QPainter &painter);
-    void paintCorner(QPainter &painter);
+    // The clocks and the bar move every second, between status updates.
+    void tick();
 
+    QStackedWidget *m_pages;
+    QWidget *m_setUpPage;
+    QWidget *m_nothingPage;
+    QWidget *m_activityPage;
+
+    bool m_setUp = true;
     QJsonObject m_main;
-    QJsonObject m_corner;
-    bool m_music = false;
+    QJsonObject m_other;
+
+    // The main activity
+    QLabel *m_picture;
+    QLabel *m_heading;
+    QLabel *m_title;
+    QLabel *m_subtitle;
+    QLabel *m_third;
+    QLabel *m_elapsed;
+    QProgressBar *m_progress;
+    QLabel *m_left;
+
+    // The line underneath
+    QWidget *m_otherRow;
+    QLabel *m_otherIcon;
+    QLabel *m_otherName;
+    QLabel *m_otherLine;
 
     QNetworkAccessManager *m_network;
 
     // The cover or game picture, once it has arrived, and the address it
     // came from - or is on its way from.
-    QPixmap m_picture;
-    QString m_pictureUrl;
+    QPixmap m_cover;
+    QString m_coverUrl;
 };

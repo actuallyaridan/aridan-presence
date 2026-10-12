@@ -1,6 +1,7 @@
 // Finding a cover for a song whose player did not give us one, by searching
 // iTunes - the same place the site looks things up.
 
+use crate::activity::Activity;
 use crate::track::Track;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -74,13 +75,76 @@ impl Artwork {
             return;
         }
 
-        let term = format!("{} {}", track.title, track.artist);
+        // `if let Some(x) = ...` runs the block only when there is something
+        // inside, and names it x.
+        if let Some(found) = self.find(&track.title, &track.artist).await {
+            track.artwork = Some(found.image);
+
+            if track.link.is_none() {
+                track.link = found.link;
+            }
+        }
+    }
+
+    // Cider tells Discord about some songs with its own animated cover, from
+    // exp-rise.cider.sh. Discord passes that through its own image proxy, but
+    // with Discord closed this agent is the one sending it, and as it is the
+    // site gets a file of tens of megabytes it can neither shrink nor read
+    // the colours of. So Apple's still of the same cover goes in large_image,
+    // and Cider's moves to large_image_animated.
+    //
+    // A cover already on Apple's CDN is left as it is, and so is a song
+    // iTunes cannot find, which keeps the animated one.
+    //
+    // Only Apple Music: Spotify's covers come from its own CDN, which is fine.
+    pub async fn still_for(&mut self, activity: &mut Activity) {
+        if activity.name != "Apple Music" {
+            return;
+        }
+
+        let Some(assets) = activity.assets.as_ref() else {
+            return;
+        };
+
+        let Some(image) = assets.large_image.as_ref() else {
+            return;
+        };
+
+        if !needs_still(image) {
+            return;
+        }
+
+        let title = activity.details.clone().unwrap_or_default();
+        let artist = activity.state.clone().unwrap_or_default();
+
+        let Some(found) = self.find(&title, &artist).await else {
+            return;
+        };
+
+        // Checked above, so these are both there.
+        let assets = activity.assets.as_mut().unwrap();
+        assets.large_image_animated = assets.large_image.take();
+        assets.large_image = Some(found.image);
+
+        if activity.url.is_none() {
+            activity.url = found.link;
+        }
+    }
+
+    // The cached answer for a song, asking iTunes the first time. None both
+    // when iTunes has nothing and when it could not be reached.
+    async fn find(&mut self, title: &str, artist: &str) -> Option<Found> {
+        if title.is_empty() {
+            return None;
+        }
+
+        let term = format!("{} {}", title, artist);
         let key = term.to_lowercase();
 
         if !self.cache.contains_key(&key) {
             // A network error is not remembered, so the next tick tries again.
             let Ok(found) = self.search(&term).await else {
-                return;
+                return None;
             };
 
             if self.cache.len() >= CACHE_LIMIT {
@@ -89,15 +153,8 @@ impl Artwork {
             self.cache.insert(key.clone(), found);
         }
 
-        // `if let Some(x) = ...` runs the block only when there is something
-        // inside, and names it x.
-        if let Some(Some(found)) = self.cache.get(&key) {
-            track.artwork = Some(found.image.clone());
-
-            if track.link.is_none() {
-                track.link = found.link.clone();
-            }
-        }
+        let cached = self.cache.get(&key)?;
+        cached.clone()
     }
 
     // Ok(None) means iTunes answered and has nothing. Err means it did not
@@ -146,6 +203,12 @@ fn is_music_player(player: &str) -> bool {
     MUSIC_PLAYERS.contains(&player)
 }
 
+// Apple's covers can be shrunk and read by the site; anything else from an
+// Apple Music activity is Cider's own copy.
+fn needs_still(image: &str) -> bool {
+    !image.contains(".mzstatic.com/")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,5 +221,14 @@ mod tests {
         assert!(!is_music_player("Firefox"));
         assert!(!is_music_player("Chrome"));
         assert!(!is_music_player("Microsoft Edge"));
+    }
+
+    #[test]
+    fn only_cider_covers_are_swapped() {
+        assert!(needs_still("https://exp-rise.cider.sh/api/v1/artwork/generate/abc.webp"));
+
+        assert!(!needs_still(
+            "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/a/b/600x600bb.jpg"
+        ));
     }
 }

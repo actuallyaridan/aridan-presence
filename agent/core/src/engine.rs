@@ -158,6 +158,10 @@ async fn gather(sources: &mut Sources, discord: &DiscordIpc, clock: &mut TrackCl
                 break;
             }
         }
+
+        if let Some(found) = music.as_mut() {
+            sources.artwork.still_for(found).await;
+        }
     }
 
     // 3. Now Playing. Asked every tick even when it is not needed, so the

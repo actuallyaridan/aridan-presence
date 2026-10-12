@@ -1,49 +1,63 @@
 #pragma once
 
-// Settings, as a Properties dialog like linux-devmgmt's: tabs, and OK,
-// Cancel and Apply. Nothing changes until OK or Apply.
+// Settings, as a Windows 7 Properties dialog: tabs, and OK, Cancel and
+// Apply. Nothing changes until OK or Apply. Its width, margins and the thin
+// frames round its lists follow linux-devmgmt's Properties dialog.
 //
 //   General       start at login, and which apps may be shared
 //   Connections   the server, Cider and artwork
-//   Developer     how each source is doing, the log, and where the settings
-//                 file is
+//   Developer     how each source is doing, and where the settings file is
+//   Log           what the app has been doing
 
 #include <QDialog>
-#include <QList>
+#include <QString>
+#include <QStringList>
 
 class QCheckBox;
 class QDialogButtonBox;
-class QGridLayout;
 class QLabel;
 class QLineEdit;
-class QPlainTextEdit;
+class QListWidget;
 class QTabWidget;
+class QTreeWidget;
+class QWidget;
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit SettingsDialog(int tab, QWidget *parent = nullptr);
+    enum Tab { General, Connections, Developer, Log };
+
+    explicit SettingsDialog(Tab tab, QWidget *parent = nullptr);
+
+    void showTab(Tab tab);
+
+protected:
+    void showEvent(QShowEvent *event) override;
 
 private:
     QWidget *buildGeneralTab();
     QWidget *buildConnectionsTab();
     QWidget *buildDeveloperTab();
+    QWidget *buildLogTab();
 
     // Saves what is in the dialog. False if something could not be saved,
     // and says what.
     bool apply();
 
     void markChanged();
+    void showProblem(const QString &problem);
     void renderSources();
     void renderLog();
 
     QTabWidget *m_tabs;
     QDialogButtonBox *m_buttons;
     QLabel *m_problem;
+    bool m_sized = false;
 
     QCheckBox *m_autostart;
-    QList<QCheckBox *> m_players;
+    QListWidget *m_players;
+    QStringList m_hiddenAllowed;
 
     QLineEdit *m_token;
     QLineEdit *m_server;
@@ -51,6 +65,7 @@ private:
     QLineEdit *m_ciderToken;
     QLineEdit *m_countries;
 
-    QGridLayout *m_sources;
-    QPlainTextEdit *m_log;
+    QTreeWidget *m_sources;
+    QTreeWidget *m_log;
+    QString m_logJson;
 };

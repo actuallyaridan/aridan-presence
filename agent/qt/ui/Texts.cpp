@@ -1,7 +1,14 @@
 #include "Texts.h"
 #include "IconHelper.h"
 
+#include <QDateTime>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
+#include <QRegularExpression>
+#include <QStandardPaths>
 #include <QMap>
 #include <QStringList>
 
@@ -19,6 +26,54 @@ const QList<QPair<QString, QString>> kKnownPlayers = {
     {"safari", "Safari"},
     {"chrome", "Chrome"},
 };
+
+// What the known players' launchers are called: one is installed when a
+// .desktop file has one of these in its file name or its Name=. Flatpaks
+// count, since their launchers are in the same folders.
+const QMap<QString, QStringList> kLaunchers = {
+    {"cider", {"cider"}},
+    {"apple-music", {"apple-music", "apple music", "applemusic"}},
+    {"spotify", {"spotify"}},
+    {"firefox", {"firefox"}},
+    {"safari", {"safari"}},
+    {"chrome", {"chrome", "chromium"}},
+};
+
+// The file name and Name= of every app launcher on this computer, in lower
+// case.
+QStringList launcherNames() {
+    QStringList names;
+
+    for (const QString &folder : QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)) {
+        QDirIterator it(folder, {"*.desktop"}, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QFileInfo file = it.nextFileInfo();
+            names << file.completeBaseName().toLower();
+
+            QFile desktop(file.filePath());
+            if (!desktop.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+            while (!desktop.atEnd()) {
+                const QString line = QString::fromUtf8(desktop.readLine()).trimmed();
+                if (line.startsWith("Name=")) {
+                    names << line.mid(5).toLower();
+                    break;
+                }
+            }
+        }
+    }
+
+    return names;
+}
+
+bool hasLauncher(const QStringList &names, const QString &key) {
+    for (const QString &pattern : kLaunchers.value(key)) {
+        for (const QString &name : names) {
+            if (name.contains(pattern)) return true;
+        }
+    }
+    return false;
+}
 
 QJsonArray activities(const QJsonObject &status) {
     return status.value("activities").toArray();
@@ -100,21 +155,45 @@ QString clock(qint64 milliseconds) {
     return parts.join(':');
 }
 
-Sharing sharing(const QJsonObject &status) {
+Times timesOf(const QJsonObject &activity) {
+    const QJsonObject times = activity.value("timestamps").toObject();
+    const qint64 start = times.value("start").toInteger();
+    const qint64 end = times.value("end").toInteger();
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+
+    Times out;
+    if (start > 0 && end > start) {
+        out.length = end - start;
+        out.elapsed = qBound<qint64>(0, now - start, out.length);
+    } else if (end > 0) {
+        out.remaining = qMax<qint64>(0, end - now);
+    } else if (start > 0) {
+        out.elapsed = qMax<qint64>(0, now - start);
+    }
+    return out;
+}
+
+QString coverUrl(const QString &url, int size) {
+    if (!url.contains("mzstatic.com/")) return url;
+
+    static const QRegularExpression appleSize(R"(/(\d+)x\1(bb|sr)(-\d+)?\.(jpg|png)(\?.*)?$)",
+                                              QRegularExpression::CaseInsensitiveOption);
+    const QString pixels = QString::number(size);
+    QString resized = url;
+    return resized.replace(appleSize, "/" + pixels + "x" + pixels + "\\2\\3.\\4\\5");
+}
+
+QString sharing(const QJsonObject &status) {
     if (!status.value("set_up").toBool()) {
-        return {"Not set up yet. Add the server token in Settings.",
-                themeIcon({"dialog-warning", "emblem-important"})};
+        return "Not set up yet. Add the server token in Settings.";
     }
     if (status.value("paused").toBool()) {
-        return {"Paused. Nothing from this computer is on aridan.net.",
-                themeIcon({"media-playback-pause", "media-playback-paused"})};
+        return "Paused. Nothing from this computer is on aridan.net.";
     }
     if (!status.value("server_ok").toBool()) {
-        return {"Can't reach the server: " + status.value("server_message").toString(),
-                themeIcon({"dialog-error", "emblem-error"})};
+        return "Can't reach the server: " + status.value("server_message").toString();
     }
-    return {"Sharing to aridan.net as " + status.value("device").toString(),
-            themeIcon({"emblem-ok", "emblem-default", "dialog-ok"})};
+    return "Sharing to aridan.net as " + status.value("device").toString();
 }
 
 QString trayLine(const QJsonObject &status) {
@@ -166,9 +245,20 @@ QList<Player> playerList(const QJsonObject &config, const QJsonObject &status) {
         if (!known(key)) names.append({key, player.value("name").toString()});
     }
 
+    QStringList playing;
+    for (const QJsonValue &value : status.value("players").toArray()) {
+        playing << value.toObject().value("key").toString();
+    }
+
+    // Only the known ones can be looked for. Anything else was added to the
+    // settings by hand, or is open right now, so it is always shown.
+    const QStringList launchers = launcherNames();
+
     QList<Player> list;
     for (const auto &pair : names) {
-        list.append({pair.first, pair.second, allowed.contains(pair.first)});
+        const QString &key = pair.first;
+        const bool shown = !kLaunchers.contains(key) || playing.contains(key) || hasLauncher(launchers, key);
+        list.append({key, pair.second, allowed.contains(key), shown});
     }
     return list;
 }
