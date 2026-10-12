@@ -1,6 +1,7 @@
 # The Linux app: the window and tray made with Qt, so they are drawn by the
 # desktop's own theme like any other KDE app. The work itself is in ../core.
-# Windows and macOS use the Tauri app in .. instead.
+# Windows uses the Tauri app in .. instead, and macOS the SwiftUI one in
+# ../macos.
 
 [package]
 name = "aridan-presence-qt"

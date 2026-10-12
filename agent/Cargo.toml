@@ -1,8 +1,9 @@
-# The Tauri app: the window and tray on Windows and macOS. The work itself
-# is in core/; the Linux app, which uses Qt instead, is in qt/.
+# The Tauri app: the window and tray on Windows. The work itself is in
+# core/; the Linux app, which uses Qt instead, is in qt/, and the macOS app,
+# which uses SwiftUI, is in macos/.
 
 [workspace]
-members = ["core", "qt"]
+members = ["core", "qt", "macos"]
 
 [package]
 name = "aridan-presence"

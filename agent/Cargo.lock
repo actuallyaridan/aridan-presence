@@ -70,6 +70,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aridan-presence-macos"
+version = "0.3.0"
+dependencies = [
+ "presence-core",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "aridan-presence-qt"
 version = "0.3.0"
 dependencies = [

@@ -1,7 +1,8 @@
 # Everything that does the actual work: reading Cider, Discord and Now
-# Playing, looking up covers, and reporting to presence.aridan.net. Both
-# windows use it - the Tauri one on Windows and macOS (../src) and the Qt one
-# on Linux (../qt) - and neither has any of this in it themselves.
+# Playing, looking up covers, and reporting to presence.aridan.net. All
+# three windows use it - the Tauri one on Windows (../src), the Qt one on
+# Linux (../qt) and the SwiftUI one on macOS (../macos) - and none of them
+# has any of this in it themselves.
 
 [package]
 name = "presence-core"
@@ -13,7 +14,7 @@ dirs = "7.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sysinfo = "0.39.6"
-tokio = { version = "1.53.2", features = ["rt", "macros", "time", "net", "signal", "sync", "io-util"] }
+tokio = { version = "1.53.2", features = ["rt", "macros", "time", "net", "signal", "sync", "io-util", "process"] }
 toml = "1.1.6"
 
 # HTTPS: on Linux, rustls, which brings its own crypto. On Windows and macOS,

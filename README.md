@@ -23,9 +23,10 @@ For local testing, put `AGENT_TOKEN=...` in `worker/.dev.vars` and run
 
 ## Agent
 
-A tray app, written in Rust with [Tauri](https://tauri.app). The window is
-plain HTML, CSS and JavaScript in `agent/ui/`, styled with aridan.net's own
-CSS. The first time it opens, it shows Settings: put the Worker's token in
+A tray app. The work is done in Rust (`agent/core/`), and each system gets a
+window made the way its own apps are: [Tauri](https://tauri.app) with
+aridan.net's own CSS on Windows (`agent/ui/`), Qt on Linux (`agent/qt/`) and
+SwiftUI with Liquid Glass on macOS (`agent/macos/`). The first time it opens, it shows Settings: put the Worker's token in
 Connections > Server, and switch on General > Start when I log in.
 
 ### Linux
@@ -36,6 +37,19 @@ npm install
 npx tauri build --no-bundle
 ./linux/install.sh
 ```
+
+### macOS
+
+Needs macOS 26 or later, Xcode, and Rust (`brew install rustup`, then
+`rustup default stable`).
+
+```sh
+cd agent/macos
+./build.sh install
+```
+
+It lives in the menu bar, and only shows in the Dock while its window is
+open. Start at login is in Settings > General.
 
 ### Windows
 

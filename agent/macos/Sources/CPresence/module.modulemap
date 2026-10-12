@@ -1,0 +1,5 @@
+module CPresence {
+    header "presence.h"
+    link "aridan_presence_macos"
+    export *
+}

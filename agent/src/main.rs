@@ -1,8 +1,9 @@
 // aridan-presence: tells presence.aridan.net what I am listening to and
 // playing, so the music widget on aridan.net works without Discord open.
 //
-// This is the Windows and macOS app; Linux has its own, made with Qt, in
-// ../qt. Both use ../core, which does the work.
+// This is the Windows app; Linux has its own, made with Qt, in ../qt, and
+// macOS its own, made with SwiftUI, in ../macos. All of them use ../core,
+// which does the work.
 //
 // It is a tray app. The work happens in core/src/engine.rs, in the
 // background, for as long as the app is open. The window (ui/) is only for looking at what it is

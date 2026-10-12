@@ -18,11 +18,17 @@ mod windows;
 #[cfg(windows)]
 pub use self::windows::NowPlaying;
 
-// Until macOS has its own, it gets one that never finds anything.
-#[cfg(not(any(target_os = "linux", windows)))]
+#[cfg(target_os = "macos")]
+mod macos;
+
+#[cfg(target_os = "macos")]
+pub use macos::NowPlaying;
+
+// Anywhere else gets one that never finds anything.
+#[cfg(not(any(target_os = "linux", windows, target_os = "macos")))]
 mod unsupported;
 
-#[cfg(not(any(target_os = "linux", windows)))]
+#[cfg(not(any(target_os = "linux", windows, target_os = "macos")))]
 pub use unsupported::NowPlaying;
 
 // The name the site shows for a player, from the short name the settings file

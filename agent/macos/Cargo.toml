@@ -1,0 +1,19 @@
+# The macOS app: the window, the menu bar item and Settings made with
+# SwiftUI (Sources/), so they are drawn with Liquid Glass like any other
+# Mac app. This crate is only the bridge between Swift and ../core, which
+# does the work, built as a static library the Swift app links in.
+# Windows uses the Tauri app in .. instead, and Linux the Qt one in ../qt.
+
+[package]
+name = "aridan-presence-macos"
+version = "0.3.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+presence-core = { path = "../core" }
+serde = "1.0.229"
+serde_json = "1.0.151"
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "time"] }
