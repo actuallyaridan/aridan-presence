@@ -9,7 +9,15 @@
 // actually doing something. Between songs that is almost never.
 
 import { DurableObject } from "cloudflare:workers";
-import { combine, isLive, DEVICE_TTL_MS } from "./merge.js";
+import {
+  combine,
+  isLive,
+  nextLastPlayed,
+  withLastPlayed,
+  nextRecent,
+  recentForSite,
+  DEVICE_TTL_MS,
+} from "./merge.js";
 
 const DEVICE_PREFIX = "device:";
 
@@ -18,6 +26,12 @@ const DEVICE_PREFIX = "device:";
 // leaves out devices that have timed out - so when the alarm comes to remove
 // one, "before" would look just like "after" and the pages would never hear.
 const SENT_KEY = "sent";
+
+// The last song played and whether it still is - see nextLastPlayed().
+const LAST_PLAYED_KEY = "lastPlayed";
+
+// The songs played lately, newest first - see nextRecent().
+const RECENT_KEY = "recent";
 
 export class Presence extends DurableObject {
   constructor(ctx, env) {
@@ -63,7 +77,18 @@ export class Presence extends DurableObject {
 
   async snapshot() {
     const devices = await this.readDevices();
-    return combine(devices, Date.now());
+    const presence = combine(devices, Date.now());
+
+    const last = await this.ctx.storage.get(LAST_PLAYED_KEY);
+    return withLastPlayed(presence, last);
+  }
+
+  async recent() {
+    const devices = await this.readDevices();
+    const live = combine(devices, Date.now());
+
+    const recent = await this.ctx.storage.get(RECENT_KEY);
+    return recentForSite(recent, live.activities);
   }
 
   /* ---------- Agents ---------- */
@@ -116,6 +141,11 @@ export class Presence extends DurableObject {
   }
 
   async afterChange() {
+    // First, so a song that has just stopped goes out with this broadcast as
+    // the last one played.
+    await this.rememberLastPlayed();
+    await this.rememberRecent();
+
     const after = await this.snapshot();
     const sent = await this.ctx.storage.get(SENT_KEY);
 
@@ -141,6 +171,32 @@ export class Presence extends DurableObject {
     } else {
       await this.ctx.storage.deleteAlarm();
     }
+  }
+
+  async rememberLastPlayed() {
+    const now = Date.now();
+
+    const devices = await this.readDevices();
+    const live = combine(devices, now);
+
+    const last = await this.ctx.storage.get(LAST_PLAYED_KEY);
+    const next = nextLastPlayed(last, live.activities, now);
+    if (!next) return;
+
+    await this.ctx.storage.put(LAST_PLAYED_KEY, next);
+  }
+
+  async rememberRecent() {
+    const now = Date.now();
+
+    const devices = await this.readDevices();
+    const live = combine(devices, now);
+
+    const recent = await this.ctx.storage.get(RECENT_KEY);
+    const next = nextRecent(recent, live.activities, now);
+    if (!next) return;
+
+    await this.ctx.storage.put(RECENT_KEY, next);
   }
 
   /* ---------- Helpers ---------- */

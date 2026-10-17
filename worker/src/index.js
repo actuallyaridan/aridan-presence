@@ -6,6 +6,11 @@
 //                            live updates turned off.
 //   PUT    /devices/<id>     An agent's report: { "activities": [...] }.
 //   DELETE /devices/<id>     An agent shutting down.
+//   GET    /recent           The songs played lately, newest first:
+//                            { tracks: [{ activity, at, playing? }] }.
+//
+// While nothing is playing, both answers also carry "last_played":
+// { activity, at } - the last song, and when it stopped.
 //
 // The two device routes need "Authorization: Bearer <AGENT_TOKEN>". Reading
 // is open to anyone, the same as Lanyard.
@@ -38,6 +43,13 @@ export default {
 
       const snapshot = await presence.snapshot();
       return json(snapshot);
+    }
+
+    if (url.pathname === "/recent") {
+      if (request.method !== "GET") return status(405);
+
+      const recent = await presence.recent();
+      return json(recent);
     }
 
     const match = url.pathname.match(DEVICE_PATH);
